@@ -13,7 +13,7 @@ from utils.model import get_model, get_vocoder
 from utils.tools import to_device, synth_samples
 from dataset import TextDataset
 from text import text_to_sequence
-
+import time
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -88,6 +88,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
 
+    _start = time.time()
     for batch in batchs:
         batch = to_device(batch, device)
         with torch.no_grad():
@@ -106,6 +107,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
                 preprocess_config,
                 train_config["path"]["result_path"],
             )
+    print(f"Reference done after {time.time()-_start}")
 
 
 if __name__ == "__main__":
@@ -193,12 +195,14 @@ if __name__ == "__main__":
     # Preprocess texts
     if args.mode == "batch":
         # Get dataset
+        _start = time.time()
         dataset = TextDataset(args.source, preprocess_config)
         batchs = DataLoader(
             dataset,
             batch_size=8,
             collate_fn=dataset.collate_fn,
         )
+        print(f"Loaded {len(dataset)} file after {time.time()-_start}")
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = np.array([args.speaker_id])
