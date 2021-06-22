@@ -1,6 +1,7 @@
 import re
 import argparse
 from string import punctuation
+from scipy.io import wavfile
 
 import torch
 import yaml
@@ -124,14 +125,16 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
                 e_control=energy_control,
                 d_control=duration_control
             )
-            synth_wav(
+            for wav_file in synth_wav(
                 batch,
                 output,
                 vocoder,
                 model_config,
                 preprocess_config,
                 train_config["path"]["result_path"],
-            )
+                ):
+            yield wav_file
+
     print(f"Reference done after {time.time()-_start}")
 
 if __name__ == "__main__":
