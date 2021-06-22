@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-
+import uvicorn
 app = FastAPI()
 from fastapi.responses import StreamingResponse
 import re
@@ -26,8 +26,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 preprocess_config = yaml.load(
     open( './config/Viet_tts/preprocess.yaml', "r"), Loader=yaml.FullLoader
 )
-model_config = yaml.load(open('./config/Viet-tts/model.yaml', "r"), Loader=yaml.FullLoader)
-train_config = yaml.load(open('./config/Viet-tts/train.yaml', "r"), Loader=yaml.FullLoader)
+model_config = yaml.load(open('./config/Viet_tts/model.yaml', "r"), Loader=yaml.FullLoader)
+train_config = yaml.load(open('./config/Viet_tts/train.yaml', "r"), Loader=yaml.FullLoader)
 configs = (preprocess_config, model_config, train_config)
 
 # Get model
@@ -56,3 +56,5 @@ def root(text):
     wav_stream = open(wav_file, mode='rb')
     return StreamingResponse(wav_stream, media_type="video/mp4")
 	# return {"message": "Hello World"}
+if __name__ == '__main__':
+    uvicorn.run(app, port=80, host='0.0.0.0')
