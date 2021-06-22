@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import uvicorn
 app = FastAPI()
 from fastapi.responses import StreamingResponse
@@ -42,7 +42,9 @@ vocoder = get_vocoder(model_config, device)
 restore_step = 5000
 control_values = 1., 1., 1.
 @app.get("/tts/generate")
-def root(text):
+def root(text: Request):
+    text = text.Json()["text"]
+    print(f"Get text: {text}")
     ids = raw_texts = text
     speakers = np.array([0])
     if preprocess_config["preprocessing"]["text"]["language"] == "en":
@@ -57,4 +59,4 @@ def root(text):
     return StreamingResponse(wav_stream, media_type="video/mp4")
 	# return {"message": "Hello World"}
 if __name__ == '__main__':
-    uvicorn.run(app, port=80, host='0.0.0.0')
+    uvicorn.run(app, port=80, host='0.0.0.0', reload=True)
