@@ -24,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Read Config
 preprocess_config = yaml.load(
-    open( './config/Viet-tts/preprocess.yaml', "r"), Loader=yaml.FullLoader
+    open( './config/Viet_tts/preprocess.yaml', "r"), Loader=yaml.FullLoader
 )
 model_config = yaml.load(open('./config/Viet-tts/model.yaml', "r"), Loader=yaml.FullLoader)
 train_config = yaml.load(open('./config/Viet-tts/train.yaml', "r"), Loader=yaml.FullLoader)
