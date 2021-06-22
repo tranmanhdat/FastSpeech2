@@ -10,7 +10,7 @@ from g2p_en import G2p
 from pypinyin import pinyin, Style
 
 from utils.model import get_model, get_vocoder
-from utils.tools import to_device, synth_samples
+from utils.tools import to_device, synth_samples, synth_wav
 from dataset import TextDataset
 from text import text_to_sequence
 import time
@@ -109,6 +109,30 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
             )
     print(f"Reference done after {time.time()-_start}")
 
+def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
+    preprocess_config, model_config, train_config = configs
+    pitch_control, energy_control, duration_control = control_values
+
+    _start = time.time()
+    for batch in batchs:
+        batch = to_device(batch, device)
+        with torch.no_grad():
+            # Forward
+            output = model(
+                *(batch[2:]),
+                p_control=pitch_control,
+                e_control=energy_control,
+                d_control=duration_control
+            )
+            synth_wav(
+                batch,
+                output,
+                vocoder,
+                model_config,
+                preprocess_config,
+                train_config["path"]["result_path"],
+            )
+    print(f"Reference done after {time.time()-_start}")
 
 if __name__ == "__main__":
 
@@ -117,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["batch", "single"],
+        choices=["batch", "single", "single_wav"],
         required=True,
         help="Synthesize a whole dataset or a single sentence",
     )
@@ -192,6 +216,7 @@ if __name__ == "__main__":
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
 
+    control_values = args.pitch_control, args.energy_control, args.duration_control
     # Preprocess texts
     if args.mode == "batch":
         # Get dataset
@@ -203,6 +228,7 @@ if __name__ == "__main__":
             collate_fn=dataset.collate_fn,
         )
         print(f"Loaded {len(dataset)} file after {time.time()-_start}")
+        synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = np.array([args.speaker_id])
@@ -212,7 +238,14 @@ if __name__ == "__main__":
             texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
         text_lens = np.array([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
-
-    control_values = args.pitch_control, args.energy_control, args.duration_control
-
-    synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
+        synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
+    if args.mode == "single_wav":
+        ids = raw_texts = [args.text[:100]]
+        speakers = np.array([args.speaker_id])
+        if preprocess_config["preprocessing"]["text"]["language"] == "en":
+            texts = np.array([preprocess_english(args.text, preprocess_config)])
+        elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
+            texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
+        text_lens = np.array([len(texts[0])])
+        batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+        

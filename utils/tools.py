@@ -105,6 +105,23 @@ def expand(values, durations):
         out += [value] * max(0, int(d))
     return np.array(out)
 
+def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, path):
+
+    basenames = targets[0]
+
+    from .model import vocoder_infer
+
+    mel_predictions = predictions[1].transpose(1, 2)
+    lengths = predictions[9] * preprocess_config["preprocessing"]["stft"]["hop_length"]
+    wav_predictions = vocoder_infer(
+        mel_predictions, vocoder, model_config, preprocess_config, lengths=lengths
+    )
+
+    sampling_rate = preprocess_config["preprocessing"]["audio"]["sampling_rate"]
+    for wav, basename in zip(wav_predictions, basenames):
+        wavfile.write(os.path.join(path, "{}.wav".format(basename)), sampling_rate, wav)
+
+
 
 def synth_one_sample(targets, predictions, vocoder, model_config, preprocess_config):
 
