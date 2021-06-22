@@ -41,7 +41,7 @@ model = get_model(args, configs, device, train=False)
 vocoder = get_vocoder(model_config, device)
 restore_step = 5000
 control_values = 1., 1., 1.
-@app.get("/")
+@app.get("/tts/generate")
 def root(text):
     ids = raw_texts = text
     speakers = np.array([0])
