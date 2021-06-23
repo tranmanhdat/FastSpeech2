@@ -133,6 +133,7 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
                 preprocess_config,
                 train_config["path"]["result_path"],
                 ):
+                print(f"Reference done: {wav_file}")
                 yield wav_file
 
     print(f"Reference done after {time.time()-_start}")
