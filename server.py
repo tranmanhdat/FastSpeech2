@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 import uvicorn
 app = FastAPI()
 from fastapi.responses import StreamingResponse, FileResponse
+from pydantic import BaseModel
 import re
 import argparse
 from string import punctuation
@@ -35,6 +36,10 @@ configs = (preprocess_config, model_config, train_config)
 class Args:
     restore_step = 5000
 args = Args()
+
+class Item(BaseModel):
+    text: str
+
 model = get_model(args, configs, device, train=False)
 
 # Load vocoder
@@ -42,9 +47,9 @@ vocoder = get_vocoder(model_config, device)
 restore_step = 5000
 control_values = 1., 1., 1.
 @app.get("/tts/generate")
-async def root(text: Request):
-    text = text.json()["text"]
-    print(f"Get text: {text}")
+async def root(item: Item):
+    r = lambda : item
+    text = r()['text']
     ids = raw_texts = text
     speakers = np.array([0])
     if preprocess_config["preprocessing"]["text"]["language"] == "en":
