@@ -59,4 +59,4 @@ def root(text: Request):
     return StreamingResponse(wav_stream, media_type="video/mp4")
 	# return {"message": "Hello World"}
 if __name__ == '__main__':
-    uvicorn.run(app, port=80, host='0.0.0.0', reload=True)
+    uvicorn.run(app, port=80, host='0.0.0.0')
