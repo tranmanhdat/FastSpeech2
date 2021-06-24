@@ -124,6 +124,8 @@ def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, pa
         wavfile.write( wav_file, sampling_rate, wav)
         # yield wav_file
         wav_files.append(wav_file)
+
+    return wav_files
     
 
 def synth_one_sample(targets, predictions, vocoder, model_config, preprocess_config):
