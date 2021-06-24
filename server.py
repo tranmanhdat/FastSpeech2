@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 import uvicorn
 app = FastAPI()
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 import re
 import argparse
 from string import punctuation
@@ -42,7 +42,7 @@ vocoder = get_vocoder(model_config, device)
 restore_step = 5000
 control_values = 1., 1., 1.
 @app.get("/tts/generate")
-def root(text: Request):
+async def root(text: Request):
     text = text.json()["text"]
     print(f"Get text: {text}")
     ids = raw_texts = text
@@ -55,8 +55,9 @@ def root(text: Request):
     batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
     for wav_file in synthesize_wav(model, restore_step, configs, vocoder, batchs, control_values):
         break
-    wav_stream = open(wav_file, mode='rb')
-    return StreamingResponse(wav_stream, media_type="video/mp4")
+    return FileResponse(wav_file)
+    # wav_stream = open(wav_file, mode='rb')
+    # return StreamingResponse(wav_stream, media_type="video/mp4")
 	# return {"message": "Hello World"}
 if __name__ == '__main__':
     uvicorn.run(app, port=80, host='0.0.0.0')
