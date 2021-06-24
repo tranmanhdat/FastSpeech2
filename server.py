@@ -43,7 +43,7 @@ restore_step = 5000
 control_values = 1., 1., 1.
 @app.get("/tts/generate")
 def root(text: Request):
-    text = text.Json()["text"]
+    text = text.json()["text"]
     print(f"Get text: {text}")
     ids = raw_texts = text
     speakers = np.array([0])
