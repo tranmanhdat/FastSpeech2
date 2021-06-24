@@ -48,8 +48,7 @@ restore_step = 5000
 control_values = 1., 1., 1.
 @app.get("/tts/generate")
 async def root(item: Item):
-    r = lambda : item
-    text = r()['text']
+    text = item.text
     ids = raw_texts = text
     speakers = np.array([0])
     if preprocess_config["preprocessing"]["text"]["language"] == "en":
