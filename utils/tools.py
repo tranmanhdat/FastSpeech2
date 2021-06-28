@@ -120,7 +120,7 @@ def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, pa
     sampling_rate = preprocess_config["preprocessing"]["audio"]["sampling_rate"]
     wav_files = []
     for wav, basename in zip(wav_predictions, basenames):
-        wav_name = uuid.uuid4().hex[:6].upper()
+        wav_name = uuid.uuid4().hex[:25].upper()
         wav_file = os.path.join(path, "{}.wav".format(wav_name))
         wavfile.write( wav_file, sampling_rate, wav)
         # yield wav_file
