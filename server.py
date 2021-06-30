@@ -34,7 +34,7 @@ configs = (preprocess_config, model_config, train_config)
 # Get model
 
 class Args:
-    restore_step = 5000
+    restore_step = 3000
 args = Args()
 
 class Item(BaseModel):
