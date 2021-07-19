@@ -26,7 +26,8 @@ def prepare_align(config):
             base_name = os.path.splitext(os.path.basename(parts[0]))[0]
             text = parts[1]
             text = _clean_text(text, cleaners)
-            texts[i] = {base_name: text}
+            # texts[i] = {base_name: text}
+            texts[base_name] = text
 
     for speaker in speakers:
         wav_files = os.listdir(os.path.join(in_dir, speaker))
