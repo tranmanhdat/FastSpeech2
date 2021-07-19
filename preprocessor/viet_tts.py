@@ -4,8 +4,6 @@ import librosa
 import numpy as np
 from scipy.io import wavfile
 from tqdm import tqdm
-import sys
-sys.path.insert(1, '/content/FastSpeech2')
 from text import _clean_text
 
 
@@ -32,7 +30,7 @@ def prepare_align(config):
     for speaker in speakers:
         wav_files = os.listdir(os.path.join(in_dir, speaker))
         os.makedirs(os.path.join(out_dir, speaker), exist_ok=True)
-        for wav_file in wav_files:
+        for wav_file in tqdm(wav_files):
             base_name = os.path.splitext(wav_file)[0]
             text = texts[base_name]
             wav_path = os.path.join(in_dir, speaker, wav_file)
