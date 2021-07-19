@@ -31,11 +31,15 @@ def prepare_align(config):
         wav_files = os.listdir(os.path.join(in_dir, speaker))
         os.makedirs(os.path.join(out_dir, speaker), exist_ok=True)
         for wav_file in tqdm(wav_files):
-            base_name = os.path.splitext(wav_file)[0]
-            text = texts[base_name]
-            wav_path = os.path.join(in_dir, speaker, wav_file)
-            wav, _ = librosa.load(wav_path, sampling_rate)
-            wav = wav / max(abs(wav)) * max_wav_value
+            try:
+                base_name = os.path.splitext(wav_file)[0]
+                text = texts[base_name]
+                wav_path = os.path.join(in_dir, speaker, wav_file)
+                wav, _ = librosa.load(wav_path, sampling_rate)
+                wav = wav / max(abs(wav)) * max_wav_value
+            except Exception as e:
+                print(e)
+                continue
             wavfile.write(
                 os.path.join(out_dir, speaker, "{}.wav".format(base_name)),
                 sampling_rate,
