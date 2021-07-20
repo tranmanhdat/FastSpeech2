@@ -3,12 +3,12 @@ dataset: "viet_tts"
 path:
   corpus_path: "../data/mps"
   lexicon_path: "./lexicon/viet-tts-lexicon.txt"
-  raw_path: "./raw_data/"
+  raw_path: "./raw_data"
   preprocessed_path: "./preprocessed_data"
 
 preprocessing:
 # default 512
-  val_size: 10
+  val_size: 50
   text:
     text_cleaners: ["vietnamese_cleaners"]
     language: "en"
