@@ -93,12 +93,12 @@ def english_cleaners(text):
     return text
 
 def vietnamese_cleaners(text):
-    text = re.sub('['+punctuation+']', ' ', text) # 
+    # text = re.sub('['+punctuation+']', ' ', text) #
     text = lowercase(text)
     # text = expand_numbers(text) # TODO: expand vietnamese numbers
 
     # TODO:Need abbreviation for vietnamese
-    text = expand_abbreviations(text) 
+    text = expand_abbreviations(text)
     text = collapse_whitespace(text)
     text = text.strip()
     return text
