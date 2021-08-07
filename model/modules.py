@@ -118,7 +118,11 @@ class VarianceAdaptor(nn.Module):
             pitch_prediction, pitch_embedding = self.get_pitch_embedding(
                 x, pitch_target, src_mask, p_control
             )
-            x = x + pitch_embedding
+            try:
+                x = x + pitch_embedding
+            except Exception as e:
+                print(f"x_shape: {x.shape}\npitch_shape: {pitch_embedding.shape}")
+                raise e
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, src_mask, p_control
