@@ -119,7 +119,8 @@ class VarianceAdaptor(nn.Module):
                 x, pitch_target, src_mask, p_control
             )
             try:
-                x = x + pitch_embedding
+                # TODO: higher weighted pitch
+                x = x + 1.25*pitch_embedding
             except Exception as e:
                 print(f"x_shape: {x.shape}\npitch_shape: {pitch_embedding.shape}")
                 raise e
