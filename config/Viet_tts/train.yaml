@@ -1,9 +1,9 @@
 path:
-  ckpt_path: "./output/ckpt/vlsp2017"
-  log_path: "./output/log/vlsp2017"
-  result_path: "./output/result/vlsp2017"
+  ckpt_path: "./output/ckpt/vlsp2017-sp"
+  log_path: "./output/log/vlsp2017-sp"
+  result_path: "./output/result/vlsp2017-sp"
 optimizer:
-  batch_size: 64
+  batch_size: 32
   betas: [0.9, 0.98]
   eps: 0.000000001
   weight_decay: 0.0
