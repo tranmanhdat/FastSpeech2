@@ -30,11 +30,11 @@ def read_lexicon(lex_path):
     return lexicon
 
 
+g2p = G2p()
 def preprocess_english(text, preprocess_config):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
 
-    g2p = G2p()
     phones = []
     words = re.split(r"([,;.\-\?\!\s+])", text)
     for w in words:
