@@ -54,7 +54,7 @@ def preprocess_english(text, preprocess_config):
         )
     )
 
-    return sequence
+    return sequence.unsqueeze(0)
 
 
 def preprocess_mandarin(text, preprocess_config):
@@ -257,5 +257,5 @@ if __name__ == "__main__":
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
             texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
         text_lens = torch.tensor([len(texts)])
-        batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+        batchs = [(ids, raw_texts, speakers, texts, text_lens)]
         synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)

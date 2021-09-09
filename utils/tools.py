@@ -40,6 +40,7 @@ def to_device(data, device):
         pitches = torch.from_numpy(pitches).float().to(device)
         energies = torch.from_numpy(energies).to(device)
         durations = torch.from_numpy(durations).long().to(device)
+        max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (
             ids,
@@ -62,6 +63,7 @@ def to_device(data, device):
         speakers = speakers.long().to(device)
         texts = texts.long().to(device)
         src_lens = src_lens.to(device)
+        max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
 
@@ -122,7 +124,7 @@ def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, pa
     for wav, basename in zip(wav_predictions, basenames):
         wav_name = uuid.uuid4().hex[:25].upper()
         wav_file = os.path.join(path, "{}.wav".format(wav_name))
-        wavfile.write( wav_file, sampling_rate, wav)
+        wavfile.write( wav_file, sampling_rate, wav.numpy())
         # yield wav_file
         wav_files.append(wav_file)
 

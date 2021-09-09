@@ -45,10 +45,10 @@ class FastSpeech2(nn.Module):
         speakers,
         texts,
         src_lens,
-        max_src_len,
+        max_src_len: torch.Tensor = [],
         mels=None,
         mel_lens=None,
-        max_mel_len=None,
+        max_mel_len: torch.Tensor = [],
         p_targets=None,
         e_targets=None,
         d_targets=None,
@@ -56,6 +56,9 @@ class FastSpeech2(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
+        max_src_len = max_src_len.squeeze()
+        # max_mel_len = max_mel_len.squeeze()
+
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
