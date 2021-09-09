@@ -222,7 +222,9 @@ if __name__ == "__main__":
 
     # Get model
     model = get_model(args, configs, device, train=False)
-
+    wrapped_model = torch.jit.script(model)
+    wrapped_model.save('wrapped_model.pt')
+    exit
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
 
@@ -257,5 +259,5 @@ if __name__ == "__main__":
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
             texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
         text_lens = torch.tensor([len(texts)])
-        batchs = [(ids, raw_texts, speakers, texts, text_lens)]
+        batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
         synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)

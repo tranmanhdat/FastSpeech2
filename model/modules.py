@@ -3,6 +3,7 @@ import json
 import copy
 import math
 from collections import OrderedDict
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -244,12 +245,14 @@ class VariancePredictor(nn.Module):
 
         self.linear_layer = nn.Linear(self.conv_output_size, 1)
 
-    def forward(self, encoder_output, mask):
+    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])) \
+                ->Tuple[torch.Tensor, torch.Tensor]:
         out = self.conv_layer(encoder_output)
         out = self.linear_layer(out)
         out = out.squeeze(-1)
 
-        if mask is not None:
+        # if mask is not None:
+        if mask.numel():
             out = out.masked_fill(mask, 0.0)
 
         return out
