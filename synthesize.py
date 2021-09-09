@@ -120,11 +120,8 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
         batch = to_device(batch, device)
         with torch.no_grad():
             # Forward
-            output = model(
+            output = torch.jit.trace(model,
                 *(batch[2:]),
-                p_control=pitch_control,
-                e_control=energy_control,
-                d_control=duration_control
             )
             # for wav_file in synth_wav(
             #     batch,
