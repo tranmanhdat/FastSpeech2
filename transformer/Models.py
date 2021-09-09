@@ -6,18 +6,17 @@ import transformer.Constants as Constants
 from .Layers import FFTBlock
 from text.symbols import symbols
 
+def cal_angle(position, hid_idx, d_hid):
+    return position / np.power(10000, 2 * (hid_idx // 2) / d_hid)
+
+def get_posi_angle_vec(position, d_hid):
+    return [cal_angle(position, hid_j, d_hid) for hid_j in range(d_hid)]
 
 def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
     """ Sinusoid position encoding table """
 
-    def cal_angle(position, hid_idx):
-        return position / torch.pow(10000, 2 * (hid_idx // 2) / d_hid)
-
-    def get_posi_angle_vec(position):
-        return [cal_angle(position, hid_j) for hid_j in range(d_hid)]
-
-    sinusoid_table = torch.array(
-        [get_posi_angle_vec(pos_i) for pos_i in range(n_position)]
+    sinusoid_table = torch.tensor(
+        [get_posi_angle_vec(pos_i, d_hid) for pos_i in range(n_position)]
     )
 
     sinusoid_table[:, 0::2] = torch.sin(sinusoid_table[:, 0::2])  # dim 2i
@@ -27,7 +26,7 @@ def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
         # zero vector for padding dimension
         sinusoid_table[padding_idx] = 0.0
 
-    return torch.FloatTensor(sinusoid_table)
+    return sinusoid_table.float()
 
 
 class Encoder(nn.Module):
