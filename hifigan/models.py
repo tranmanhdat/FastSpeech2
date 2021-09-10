@@ -7,7 +7,7 @@ from torch.nn.utils import weight_norm, remove_weight_norm
 LRELU_SLOPE = 0.1
 
 
-def init_weights(m, mean=0.0, std=0.01):
+def init_weights(m, mean:float=0.0, std:float=0.01):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
         m.weight.data.normal_(mean, std)
@@ -151,9 +151,9 @@ class Generator(torch.nn.Module):
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)
             x = self.ups[i](x)
-            xs = None
+            xs = torch.Tensor()
             for j in range(self.num_kernels):
-                if xs is None:
+                if xs.numel():
                     xs = self.resblocks[i * self.num_kernels + j](x)
                 else:
                     xs += self.resblocks[i * self.num_kernels + j](x)

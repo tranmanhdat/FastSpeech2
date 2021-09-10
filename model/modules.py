@@ -80,7 +80,7 @@ class VarianceAdaptor(nn.Module):
 
     def get_pitch_embedding(self, x, target, mask, control):
         prediction = self.pitch_predictor(x, mask)
-        if target is not None:
+        if target.numel():
             embedding = self.pitch_embedding(torch.bucketize(target, self.pitch_bins))
         else:
             prediction = prediction * control
@@ -91,7 +91,7 @@ class VarianceAdaptor(nn.Module):
 
     def get_energy_embedding(self, x, target, mask, control):
         prediction = self.energy_predictor(x, mask)
-        if target is not None:
+        if target.numel():
             embedding = self.energy_embedding(torch.bucketize(target, self.energy_bins))
         else:
             prediction = prediction * control
@@ -104,14 +104,14 @@ class VarianceAdaptor(nn.Module):
         self,
         x,
         src_mask,
-        mel_mask=None,
-        max_len=None,
-        pitch_target=None,
-        energy_target=None,
-        duration_target=None,
-        p_control=1.0,
-        e_control=1.0,
-        d_control=1.0,
+        mel_mask=torch.tensor([]) ,
+        max_len: int=-1,
+        pitch_target = torch.Tensor([]),
+        energy_target = torch.Tensor([]),
+        duration_target = torch.Tensor([]),
+        p_control:float=1.0,
+        e_control:float=1.0,
+        d_control:float=1.0,
     ):
 
         log_duration_prediction = self.duration_predictor(x, src_mask)
@@ -131,7 +131,7 @@ class VarianceAdaptor(nn.Module):
             )
             x = x + energy_embedding
 
-        if duration_target is not None:
+        if duration_target.numel():
             x, mel_len = self.length_regulator(x, duration_target, max_len)
             duration_rounded = duration_target
         else:
@@ -170,7 +170,7 @@ class LengthRegulator(nn.Module):
     def __init__(self):
         super(LengthRegulator, self).__init__()
 
-    def LR(self, x, duration, max_len):
+    def LR(self, x, duration, max_len: int=-1):
         output = list()
         mel_len = list()
         for batch, expand_target in zip(x, duration):
@@ -178,7 +178,7 @@ class LengthRegulator(nn.Module):
             output.append(expanded)
             mel_len.append(expanded.shape[0])
 
-        if max_len is not None:
+        if max_len!=-1:
             output = pad(output, max_len)
         else:
             output = pad(output)
@@ -245,13 +245,11 @@ class VariancePredictor(nn.Module):
 
         self.linear_layer = nn.Linear(self.conv_output_size, 1)
 
-    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])) \
-                ->Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])) -> Tuple[torch.Tensor, torch.Tensor]:
         out = self.conv_layer(encoder_output)
         out = self.linear_layer(out)
         out = out.squeeze(-1)
 
-        # if mask is not None:
         if mask.numel():
             out = out.masked_fill(mask, 0.0)
 
@@ -267,11 +265,11 @@ class Conv(nn.Module):
         self,
         in_channels,
         out_channels,
-        kernel_size=1,
-        stride=1,
-        padding=0,
-        dilation=1,
-        bias=True,
+        kernel_size:int=1,
+        stride:int=1,
+        padding:int=0,
+        dilation:int=1,
+        bias:bool=True,
         w_init="linear",
     ):
         """

@@ -5,7 +5,7 @@ from scipy.io.wavfile import write
 from audio.audio_processing import griffin_lim
 
 
-def get_mel_from_wav(audio, _stft):
+def get_mel_from_wav(audio=torch.tensor([]), _stft=torch.tensor([])):
     audio = torch.clip(torch.FloatTensor(audio).unsqueeze(0), -1, 1)
     audio = torch.autograd.Variable(audio, requires_grad=False)
     melspec, energy = _stft.mel_spectrogram(audio)
@@ -15,7 +15,7 @@ def get_mel_from_wav(audio, _stft):
     return melspec, energy
 
 
-def inv_mel_spec(mel, out_filename, _stft, griffin_iters=60):
+def inv_mel_spec(mel, out_filename, _stft, griffin_iters:int=60):
     mel = torch.stack([mel])
     mel_decompress = _stft.spectral_de_normalize(mel)
     mel_decompress = mel_decompress.transpose(1, 2).data.cpu()

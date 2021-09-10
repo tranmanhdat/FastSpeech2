@@ -40,7 +40,7 @@ def to_device(data, device):
         pitches = torch.from_numpy(pitches).float().to(device)
         energies = torch.from_numpy(energies).to(device)
         durations = torch.from_numpy(durations).long().to(device)
-        max_src_len = torch.tensor([max_src_len]).int().to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (
             ids,
@@ -48,7 +48,7 @@ def to_device(data, device):
             speakers,
             texts,
             src_lens,
-            max_src_len,
+            # max_src_len,
             mels,
             mel_lens,
             max_mel_len,
@@ -63,13 +63,13 @@ def to_device(data, device):
         speakers = speakers.long().to(device)
         texts = texts.long().to(device)
         src_lens = src_lens.to(device)
-        max_src_len = torch.tensor([max_src_len]).int().to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
 
 
 def log(
-    logger, step=None, losses=None, fig=None, audio=None, sampling_rate=22050, tag=""
+    logger, step:int=0, losses=None, fig=None, audio=None, sampling_rate=22050, tag=""
 ):
     if losses is not None:
         logger.add_scalar("Loss/total_loss", losses[0], step)
@@ -90,9 +90,9 @@ def log(
         )
 
 
-def get_mask_from_lengths(lengths, max_len=None):
+def get_mask_from_lengths(lengths, max_len:int = 0):
     batch_size = lengths.shape[0]
-    if max_len is None:
+    if max_len:
         max_len = torch.max(lengths).item()
 
     ids = torch.arange(0, max_len).unsqueeze(0).expand(batch_size, -1).to(device)
@@ -300,7 +300,7 @@ def pad_1D(inputs, PAD=0):
     return torch.from_numpy(padded)
 
 
-def pad_2D(inputs, maxlen=None):
+def pad_2D(inputs, maxlen:int=-1):
     def pad(x, max_len):
         PAD = 0
         if np.shape(x)[0] > max_len:
@@ -312,7 +312,7 @@ def pad_2D(inputs, maxlen=None):
         )
         return x_padded[:, :s]
 
-    if maxlen:
+    if maxlen!=-1:
         output = np.stack([pad(x, maxlen) for x in inputs])
     else:
         max_len = max(np.shape(x)[0] for x in inputs)
@@ -321,8 +321,8 @@ def pad_2D(inputs, maxlen=None):
     return torch.from_numpy(output)
 
 
-def pad(input_ele, mel_max_length=None):
-    if mel_max_length:
+def pad(input_ele, mel_max_length:int=-1):
+    if mel_max_length!=-1:
         max_len = mel_max_length
     else:
         max_len = max([input_ele[i].size(0) for i in range(len(input_ele))])

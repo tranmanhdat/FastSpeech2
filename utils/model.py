@@ -71,7 +71,7 @@ def get_vocoder(config, device):
     return vocoder
 
 
-def vocoder_infer(mels, vocoder, model_config, preprocess_config, lengths=None):
+def vocoder_infer(mels, vocoder, model_config, preprocess_config, lengths=torch.tensor([])):
     name = model_config["vocoder"]["model"]
     with torch.no_grad():
         if name == "MelGAN":
@@ -86,7 +86,7 @@ def vocoder_infer(mels, vocoder, model_config, preprocess_config, lengths=None):
     wavs = [wav for wav in wavs]
 
     for i in range(len(mels)):
-        if lengths is not None:
+        if lengths.numel():
             wavs[i] = wavs[i][: lengths[i]]
 
     return torch.tensor(wavs)

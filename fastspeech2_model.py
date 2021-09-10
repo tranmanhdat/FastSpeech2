@@ -54,9 +54,9 @@ class FastSpeech2(nn.Module):
         p_targets=None,
         e_targets=None,
         d_targets=None,
-        p_control=1.0,
-        e_control=1.0,
-        d_control=1.0,
+        p_control:int=1.0,
+        e_control:int=1.0,
+        d_control:int=1.0,
     ):
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
@@ -229,9 +229,9 @@ class VarianceAdaptor(nn.Module):
         pitch_target=None,
         energy_target=None,
         duration_target=None,
-        p_control=1.0,
-        e_control=1.0,
-        d_control=1.0,
+        p_control:int=1.0,
+        e_control:int=1.0,
+        d_control:int=1.0,
     ):
 
         log_duration_prediction = self.duration_predictor(x, src_mask)
@@ -285,7 +285,7 @@ class LengthRegulator(nn.Module):
     def __init__(self):
         super(LengthRegulator, self).__init__()
 
-    def LR(self, x, duration, max_len):
+    def LR(self, x, duration, max_len=torch.tensor([])):
         output = list()
         mel_len = list()
         for batch, expand_target in zip(x, duration):
@@ -293,7 +293,7 @@ class LengthRegulator(nn.Module):
             output.append(expanded)
             mel_len.append(expanded.shape[0])
 
-        if max_len is not None:
+        if max_len.numel():
             output = pad(output, max_len)
         else:
             output = pad(output)
@@ -310,7 +310,7 @@ class LengthRegulator(nn.Module):
 
         return out
 
-    def forward(self, x, duration, max_len):
+    def forward(self, x, duration, max_len=torch.tensor([])):
         output, mel_len = self.LR(x, duration, max_len)
         return output, mel_len
 

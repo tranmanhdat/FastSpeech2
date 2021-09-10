@@ -12,7 +12,7 @@ def cal_angle(position, hid_idx, d_hid):
 def get_posi_angle_vec(position, d_hid):
     return [cal_angle(position, hid_j, d_hid) for hid_j in range(d_hid)]
 
-def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
+def get_sinusoid_encoding_table(n_position, d_hid, padding_idx = torch.tensor([])):
     """ Sinusoid position encoding table """
 
     sinusoid_table = torch.tensor(
@@ -22,7 +22,7 @@ def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
     sinusoid_table[:, 0::2] = torch.sin(sinusoid_table[:, 0::2])  # dim 2i
     sinusoid_table[:, 1::2] = torch.cos(sinusoid_table[:, 1::2])  # dim 2i+1
 
-    if padding_idx is not None:
+    if padding_idx.numel():
         # zero vector for padding dimension
         sinusoid_table[padding_idx] = 0.0
 
@@ -69,7 +69,7 @@ class Encoder(nn.Module):
             ]
         )
 
-    def forward(self, src_seq, mask, return_attns=False):
+    def forward(self, src_seq, mask, return_attns:bool=False):
 
         enc_slf_attn_list = []
         batch_size, max_len = src_seq.shape[0], src_seq.shape[1]
@@ -135,7 +135,7 @@ class Decoder(nn.Module):
             ]
         )
 
-    def forward(self, enc_seq, mask, return_attns=False):
+    def forward(self, enc_seq, mask, return_attns:bool=False):
 
         dec_slf_attn_list = []
         batch_size, max_len = enc_seq.shape[0], enc_seq.shape[1]

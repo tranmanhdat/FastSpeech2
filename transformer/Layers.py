@@ -11,14 +11,14 @@ from .SubLayers import MultiHeadAttention, PositionwiseFeedForward
 class FFTBlock(torch.nn.Module):
     """FFT Block"""
 
-    def __init__(self, d_model, n_head, d_k, d_v, d_inner, kernel_size, dropout=0.1):
+    def __init__(self, d_model, n_head, d_k, d_v, d_inner, kernel_size, dropout:float=0.1):
         super(FFTBlock, self).__init__()
         self.slf_attn = MultiHeadAttention(n_head, d_model, d_k, d_v, dropout=dropout)
         self.pos_ffn = PositionwiseFeedForward(
             d_model, d_inner, kernel_size, dropout=dropout
         )
 
-    def forward(self, enc_input, mask=None, slf_attn_mask=None):
+    def forward(self, enc_input, mask = torch.tensor([]), slf_attn_mask = torch.tensor([])):
         enc_output, enc_slf_attn = self.slf_attn(
             enc_input, enc_input, enc_input, mask=slf_attn_mask
         )
@@ -35,16 +35,16 @@ class ConvNorm(torch.nn.Module):
         self,
         in_channels,
         out_channels,
-        kernel_size=1,
-        stride=1,
-        padding=None,
-        dilation=1,
-        bias=True,
+        kernel_size:int=1,
+        stride:int=1,
+        padding:int=-1,
+        dilation:int=1,
+        bias:bool=True,
         w_init_gain="linear",
     ):
         super(ConvNorm, self).__init__()
 
-        if padding is None:
+        if padding!=-1:
             assert kernel_size % 2 == 1
             padding = int(dilation * (kernel_size - 1) / 2)
 
@@ -71,10 +71,10 @@ class PostNet(nn.Module):
 
     def __init__(
         self,
-        n_mel_channels=80,
-        postnet_embedding_dim=512,
-        postnet_kernel_size=5,
-        postnet_n_convolutions=5,
+        n_mel_channels:int=80,
+        postnet_embedding_dim:int=512,
+        postnet_kernel_size:int=5,
+        postnet_n_convolutions:int=5,
     ):
 
         super(PostNet, self).__init__()
@@ -126,7 +126,7 @@ class PostNet(nn.Module):
             )
         )
 
-    def forward(self, x):
+    def forward(self, x=torch.tensor([])):
         x = x.contiguous().transpose(1, 2)
 
         for i in range(len(self.convolutions) - 1):

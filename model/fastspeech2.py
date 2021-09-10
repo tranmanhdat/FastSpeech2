@@ -26,7 +26,7 @@ class FastSpeech2(nn.Module):
         )
         self.postnet = PostNet()
 
-        self.speaker_emb = None
+        self.speaker_emb = torch.Tensor()
         if model_config["multi_speaker"]:
             with open(
                 os.path.join(
@@ -45,25 +45,25 @@ class FastSpeech2(nn.Module):
         speakers,
         texts,
         src_lens,
-        max_src_len: torch.Tensor = [],
-        mels=None,
-        mel_lens=None,
-        max_mel_len: torch.Tensor = [],
-        p_targets=None,
-        e_targets=None,
-        d_targets=None,
-        p_control=1.0,
-        e_control=1.0,
-        d_control=1.0,
+        max_src_len: int=0,
+        mels = torch.tensor([]),
+        mel_lens = torch.tensor([]),
+        max_mel_len = torch.tensor([]),
+        p_targets = torch.tensor([]),
+        e_targets = torch.tensor([]),
+        d_targets = torch.tensor([]),
+        p_control:float=1.0,
+        e_control:float=1.0,
+        d_control:float=1.0,
     ):
-        max_src_len = max_src_len.squeeze()
+        # max_src_len = max_src_len.squeeze()
         # max_mel_len = max_mel_len.squeeze()
 
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
-            if mel_lens is not None
-            else None
+            if mel_lens.numel()
+            else torch.tensor([])
         )
         # try:
         output = self.encoder(texts, src_masks)
@@ -117,4 +117,3 @@ class FastSpeech2(nn.Module):
             mel_masks,
             src_lens,
             mel_lens,
-        )
