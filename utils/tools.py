@@ -326,7 +326,7 @@ def pad_2D(inputs, maxlen:int=-1):
     # return torch.from_numpy(output)
 
 
-def pad(input_ele, mel_max_length:int=-1):
+def pad(input_ele: List[torch.Tensor], mel_max_length:int=-1):
     if mel_max_length!=-1:
         max_len = mel_max_length
     else:
@@ -342,6 +342,9 @@ def pad(input_ele, mel_max_length:int=-1):
             one_batch_padded = F.pad(
                 batch, (0, 0, 0, max_len - batch.size(0)), "constant", 0.0
             )
+        else:
+            # TODO: check this later
+            one_batch_padded = batch.data.clone()
         out_list.append(one_batch_padded)
     out_padded = torch.stack(out_list)
     return out_padded

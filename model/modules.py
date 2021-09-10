@@ -78,7 +78,7 @@ class VarianceAdaptor(nn.Module):
             n_bins, model_config["transformer"]["encoder_hidden"]
         )
 
-    def get_pitch_embedding(self, x, target, mask, control):
+    def get_pitch_embedding(self, x, target, mask, control: float):
         prediction = self.pitch_predictor(x, mask)
         if target.numel():
             embedding = self.pitch_embedding(torch.bucketize(target, self.pitch_bins))
@@ -89,7 +89,7 @@ class VarianceAdaptor(nn.Module):
             )
         return prediction, embedding
 
-    def get_energy_embedding(self, x, target, mask, control):
+    def get_energy_embedding(self, x, target, mask, control: float):
         prediction = self.energy_predictor(x, mask)
         if target.numel():
             embedding = self.energy_embedding(torch.bucketize(target, self.energy_bins))
@@ -179,11 +179,11 @@ class LengthRegulator(nn.Module):
             mel_len.append(expanded.shape[0])
 
         if max_len!=-1:
-            output = pad(output, max_len)
+            out_padded = pad(output, max_len)
         else:
-            output = pad(output)
+            out_padded = pad(output)
 
-        return output, torch.LongTensor(mel_len).to(device)
+        return out_padded, mel_len.long().to(device)
 
     def expand(self, batch, predicted):
         out: List[torch.Tensor] = []
