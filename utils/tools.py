@@ -1,5 +1,6 @@
 import os
 import json
+from typing import List
 
 import torch
 import torch.nn.functional as F
@@ -331,7 +332,7 @@ def pad(input_ele, mel_max_length:int=-1):
     else:
         max_len = max([input_ele[i].size(0) for i in range(len(input_ele))])
 
-    out_list = list()
+    out_list: List[torch.Tensor] = []
     for i, batch in enumerate(input_ele):
         if len(batch.shape) == 1:
             one_batch_padded = F.pad(

@@ -3,7 +3,7 @@ import json
 import copy
 import math
 from collections import OrderedDict
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -119,12 +119,12 @@ class VarianceAdaptor(nn.Module):
             pitch_prediction, pitch_embedding = self.get_pitch_embedding(
                 x, pitch_target, src_mask, p_control
             )
-            try:
+            # try:
                 # TODO: higher weighted pitch
-                x = x + pitch_embedding
-            except Exception as e:
-                print(f"x_shape: {x.shape}\npitch_shape: {pitch_embedding.shape}")
-                raise e
+            x = x + pitch_embedding
+            # except Exception as e:
+            #     print(f"x_shape: {x.shape}\npitch_shape: {pitch_embedding.shape}")
+            #     raise e
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, src_mask, p_control
@@ -171,8 +171,8 @@ class LengthRegulator(nn.Module):
         super(LengthRegulator, self).__init__()
 
     def LR(self, x, duration, max_len: int=-1):
-        output = list()
-        mel_len = list()
+        output: List[torch.Tensor] = []
+        mel_len: List[int] = []
         for batch, expand_target in zip(x, duration):
             expanded = self.expand(batch, expand_target)
             output.append(expanded)
@@ -186,7 +186,7 @@ class LengthRegulator(nn.Module):
         return output, torch.LongTensor(mel_len).to(device)
 
     def expand(self, batch, predicted):
-        out = list()
+        out: List[torch.Tensor] = []
 
         for i, vec in enumerate(batch):
             expand_size = predicted[i].item()
@@ -245,7 +245,7 @@ class VariancePredictor(nn.Module):
 
         self.linear_layer = nn.Linear(self.conv_output_size, 1)
 
-    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])):
         out = self.conv_layer(encoder_output)
         out = self.linear_layer(out)
         out = out.squeeze(-1)
