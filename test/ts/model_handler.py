@@ -250,4 +250,3 @@ def read_lexicon(lex_path):
             phones = temp[1:]
             if word.lower() not in lexicon:
                 lexicon[word.lower()] = phones
-    return lexicon

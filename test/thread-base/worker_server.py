@@ -200,6 +200,58 @@ def to_device(data, device):
     
     raise f"Input data not in len [6, 12]"
 
+def to_device(data, device):
+    if len(data) == 12:
+        (
+            ids,
+            raw_texts,
+            speakers,
+            texts,
+            src_lens,
+            max_src_len,
+            mels,
+            mel_lens,
+            max_mel_len,
+            pitches,
+            energies,
+            durations,
+        ) = data
+
+        speakers = torch.from_numpy(speakers).long().to(device)
+        texts = torch.from_numpy(texts).long().to(device)
+        src_lens = torch.from_numpy(src_lens).to(device)
+        mels = torch.from_numpy(mels).float().to(device)
+        mel_lens = torch.from_numpy(mel_lens).to(device)
+        pitches = torch.from_numpy(pitches).float().to(device)
+        energies = torch.from_numpy(energies).to(device)
+        durations = torch.from_numpy(durations).long().to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
+
+        return (
+            ids,
+            raw_texts,
+            speakers,
+            texts,
+            src_lens,
+            max_src_len,
+            mels,
+            mel_lens,
+            max_mel_len,
+            pitches,
+            energies,
+            durations,
+        )
+
+    if len(data) == 6:
+        (ids, raw_texts, speakers, texts, src_lens, max_src_len) = data
+
+        speakers = speakers.long().to(device)
+        texts = texts.long().to(device)
+        src_lens = src_lens.to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
+
+        return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
+
 def load_models():
     models = SimpleNamespace()
     # This is where you load your models
