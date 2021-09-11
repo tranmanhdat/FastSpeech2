@@ -49,7 +49,7 @@ class FastSpeech2(nn.Module):
         max_src_len: int=0,
         mels = torch.tensor([]),
         mel_lens = torch.tensor([]),
-        max_mel_len = torch.tensor([]),
+        max_mel_len:int=-1,
         p_targets = torch.tensor([]),
         e_targets = torch.tensor([]),
         d_targets = torch.tensor([]),

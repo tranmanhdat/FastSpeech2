@@ -78,6 +78,7 @@ class PostNet(nn.Module):
     ):
 
         super(PostNet, self).__init__()
+        self.postnet_n_convolutions = postnet_n_convolutions
         self.convolutions = nn.ModuleList()
 
         self.convolutions.append(
@@ -130,8 +131,10 @@ class PostNet(nn.Module):
         x = x.contiguous().transpose(1, 2)
 
         for i, layer in enumerate(self.convolutions):
-            if i < self.postnet_n_convolutions-2:
+            if i < self.postnet_n_convolutions-1:
                 x = F.dropout(torch.tanh(layer(x)), 0.5, self.training)
             else:
-                x = F.dropout(self.convolutions[-1](x), 0.5, self.training)
+                x = F.dropout(layer(x), 0.5, self.training)
+        x = x.contiguous().transpose(1, 2)
+
         return x

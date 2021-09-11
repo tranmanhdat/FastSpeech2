@@ -223,8 +223,8 @@ if __name__ == "__main__":
     # Get model
     model = get_model(args, configs, device, train=False)
     wrapped_model = torch.jit.script(model)
-    wrapped_model.save('wrapped_model.pt')
-    exit
+    wrapped_model.save('script_model.pt')
+    exit()
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
 
