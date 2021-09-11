@@ -100,6 +100,9 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
                 e_control=energy_control,
                 d_control=duration_control
             )
+
+            print("Yasuo")
+            print(output.shape)
             synth_samples(
                 batch,
                 output,
@@ -221,10 +224,12 @@ if __name__ == "__main__":
     configs = (preprocess_config, model_config, train_config)
 
     # Get model
-    model = get_model(args, configs, device, train=False)
-    wrapped_model = torch.jit.script(model)
-    wrapped_model.save('script_model.pt')
-    exit()
+    # model = get_model(args, configs, device, train=False)
+    # wrapped_model = torch.jit.script(model)
+    # wrapped_model.save('script_model.pt')
+    # exit()
+
+    model = torch.jit.load("script_model.pt")
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
 
@@ -258,6 +263,6 @@ if __name__ == "__main__":
             texts = torch.tensor(preprocess_english(args.text, preprocess_config))
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
             texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
-        text_lens = torch.tensor([len(texts)])
+        text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
         synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)
