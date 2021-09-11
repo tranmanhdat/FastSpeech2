@@ -101,8 +101,6 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
                 d_control=duration_control
             )
 
-            print("Yasuo")
-            print(output.shape)
             synth_samples(
                 batch,
                 output,
