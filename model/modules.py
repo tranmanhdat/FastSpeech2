@@ -119,17 +119,16 @@ class VarianceAdaptor(nn.Module):
             pitch_prediction, pitch_embedding = self.get_pitch_embedding(
                 x, pitch_target, src_mask, p_control
             )
-            # try:
-                # TODO: higher weighted pitch
             x = x + pitch_embedding
-            # except Exception as e:
-            #     print(f"x_shape: {x.shape}\npitch_shape: {pitch_embedding.shape}")
-            #     raise e
+        else:
+            pitch_prediction, pitch_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, src_mask, p_control
             )
             x = x + energy_embedding
+        else:
+            energy_prediction, energy_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
 
         if duration_target.numel():
             x, mel_len = self.length_regulator(x, duration_target, max_len)
@@ -147,11 +146,15 @@ class VarianceAdaptor(nn.Module):
                 x, pitch_target, mel_mask, p_control
             )
             x = x + pitch_embedding
+        else:
+            pitch_prediction, pitch_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
         if self.energy_feature_level == "frame_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, mel_mask, p_control
             )
             x = x + energy_embedding
+        else:
+            energy_prediction, energy_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
 
         return (
             x,
@@ -183,7 +186,7 @@ class LengthRegulator(nn.Module):
         else:
             out_padded = pad(output)
 
-        return out_padded, mel_len.long().to(device)
+        return out_padded, torch.tensor(mel_len, dtype=torch.long).to('cuda')
 
     def expand(self, batch, predicted):
         out: List[torch.Tensor] = []
@@ -195,7 +198,7 @@ class LengthRegulator(nn.Module):
 
         return out
 
-    def forward(self, x, duration, max_len):
+    def forward(self, x, duration, max_len: int):
         output, mel_len = self.LR(x, duration, max_len)
         return output, mel_len
 

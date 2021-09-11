@@ -9,6 +9,7 @@ from transformer import Encoder, Decoder, PostNet
 from .modules import VarianceAdaptor
 from utils.tools import get_mask_from_lengths
 
+## TODO: Hint consider var: torch.Tensor = torch.tensor([]) -> var: torch.Tensor ## as type init only
 
 class FastSpeech2(nn.Module):
     """ FastSpeech2 """
@@ -26,19 +27,19 @@ class FastSpeech2(nn.Module):
         )
         self.postnet = PostNet()
 
-        self.speaker_emb = torch.Tensor()
-        if model_config["multi_speaker"]:
-            with open(
-                os.path.join(
-                    preprocess_config["path"]["preprocessed_path"], "speakers.json"
-                ),
-                "r",
-            ) as f:
-                n_speaker = len(json.load(f))
-            self.speaker_emb = nn.Embedding(
-                n_speaker,
-                model_config["transformer"]["encoder_hidden"],
-            )
+        # self.speaker_emb = torch.Tensor()
+        # if model_config["multi_speaker"]:
+        #     with open(
+        #         os.path.join(
+        #             preprocess_config["path"]["preprocessed_path"], "speakers.json"
+        #         ),
+        #         "r",
+        #     ) as f:
+        #         n_speaker = len(json.load(f))
+            # self.speaker_emb = nn.Embedding(
+            #     n_speaker,
+            #     model_config["transformer"]["encoder_hidden"],
+            # )
 
     def forward(
         self,
@@ -59,11 +60,14 @@ class FastSpeech2(nn.Module):
         # max_src_len = max_src_len.squeeze()
         # max_mel_len = max_mel_len.squeeze()
 
+        # TODO: make sure empty tensors from emp_float are not refer same(e.g in grad)
+        emp_float: List[float] = []
+
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
             if mel_lens.numel()
-            else torch.tensor([])
+            else torch.tensor(emp_float)
         )
         # try:
         output = self.encoder(texts, src_masks)

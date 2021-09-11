@@ -49,7 +49,7 @@ def to_device(data, device):
             speakers,
             texts,
             src_lens,
-            # max_src_len,
+            max_src_len,
             mels,
             mel_lens,
             max_mel_len,
@@ -92,6 +92,7 @@ def log(
 
 
 def get_mask_from_lengths(lengths, max_len:int = 0):
+    device = 'cuda'
     batch_size = lengths.shape[0]
     if max_len:
         max_len = torch.max(lengths).item()

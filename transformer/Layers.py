@@ -129,9 +129,9 @@ class PostNet(nn.Module):
     def forward(self, x=torch.tensor([])):
         x = x.contiguous().transpose(1, 2)
 
-        for i in range(len(self.convolutions) - 1):
-            x = F.dropout(torch.tanh(self.convolutions[i](x)), 0.5, self.training)
-        x = F.dropout(self.convolutions[-1](x), 0.5, self.training)
-
-        x = x.contiguous().transpose(1, 2)
+        for i, layer in enumerate(self.convolutions):
+            if i < self.postnet_n_convolutions-2:
+                x = F.dropout(torch.tanh(layer(x)), 0.5, self.training)
+            else:
+                x = F.dropout(self.convolutions[-1](x), 0.5, self.training)
         return x
