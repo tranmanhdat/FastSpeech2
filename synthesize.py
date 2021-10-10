@@ -31,6 +31,8 @@ def read_lexicon(lex_path):
 
 
 g2p = G2p()
+
+
 def preprocess_english(text, preprocess_config):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
@@ -57,7 +59,9 @@ def preprocess_english(text, preprocess_config):
     return sequence.unsqueeze(0)
 
 # @torch.jit.script
-def preprocess_vie(text:str, lexicon_path:str, cleaner:str):
+
+
+def preprocess_vie(text: str, lexicon_path: str, cleaner: str):
     punctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(lexicon_path)
@@ -80,10 +84,11 @@ def preprocess_vie(text:str, lexicon_path:str, cleaner:str):
     print("Phoneme Sequence: {}".format(phones))
     sequence = torch.tensor(
         text_to_sequence(
-            phones, [cleaner] 
+            phones, [cleaner]
         )
     )
     return sequence.unsqueeze(0)
+
 
 def preprocess_mandarin(text, preprocess_config):
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
@@ -139,6 +144,7 @@ def synthesize(model, step, configs, vocoder, batchs, control_values):
             )
     print(f"Reference done after {time.time()-_start}")
 
+
 def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
@@ -150,8 +156,8 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
         with torch.no_grad():
             # Forward
             output = torch.jit.trace(model,
-                *(batch[2:]),
-            )
+                                     *(batch[2:]),
+                                     )
             # for wav_file in synth_wav(
             #     batch,
             #     output,
@@ -161,7 +167,7 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
             #     train_config["path"]["result_path"],
             #     ):
             #     print(f"Reference done: {wav_file}")
-                # yield wav_file
+            # yield wav_file
             wav_files += synth_wav(
                 batch,
                 output,
@@ -169,9 +175,10 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
                 model_config,
                 preprocess_config,
                 train_config["path"]["result_path"],
-                )
+            )
     print(f"Reference done after {time.time()-_start}")
     return wav_files
+
 
 if __name__ == "__main__":
 
@@ -245,21 +252,25 @@ if __name__ == "__main__":
     preprocess_config = yaml.load(
         open(args.preprocess_config, "r"), Loader=yaml.FullLoader
     )
-    model_config = yaml.load(open(args.model_config, "r"), Loader=yaml.FullLoader)
-    train_config = yaml.load(open(args.train_config, "r"), Loader=yaml.FullLoader)
+    model_config = yaml.load(
+        open(args.model_config, "r"), Loader=yaml.FullLoader)
+    train_config = yaml.load(
+        open(args.train_config, "r"), Loader=yaml.FullLoader)
     configs = (preprocess_config, model_config, train_config)
 
     # Get model
-    # model = get_model(args, configs, device, train=False)
-    # wrapped_model = torch.jit.script(model)
-    # wrapped_model.save('script_model.pt')
-    # exit()
+    model = get_model(args, configs, device, train=False)
+    wrapped_model = torch.jit.script(model)
+    wrapped_model.save('script_model.pt')
 
     # model = torch.jit.load("script_model.pt")
-    # Load vocoder
-    # vocoder = get_vocoder(model_config, device)
 
+    # Load vocoder
+    vocoder = get_vocoder(model_config, device)
+    vocoder = torch.jit.script(vocoder)
+    vocoder.save('script_vocoder.pt')
     # vocoder = torch.jit.load('script_vocoder.pt')
+    # exit()
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
     # Preprocess texts
@@ -273,33 +284,40 @@ if __name__ == "__main__":
             collate_fn=dataset.collate_fn,
         )
         print(f"Loaded {len(dataset)} file after {time.time()-_start}")
-        synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
+        synthesize(model, args.restore_step, configs,
+                   vocoder, batchs, control_values)
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = torch.tensor([args.speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
-            texts = torch.tensor(preprocess_english(args.text, preprocess_config))
+            texts = torch.tensor(preprocess_english(
+                args.text, preprocess_config))
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
-            texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
+            texts = torch.tensor(preprocess_mandarin(
+                args.text, preprocess_config))
         text_lens = torch.tensor([len(texts)])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
-        synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
+        synthesize(model, args.restore_step, configs,
+                   vocoder, batchs, control_values)
     if args.mode == "single_wav":
         ids = raw_texts = [args.text[:100]]
         speakers = torch.tensor([args.speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
             # texts = torch.tensor(preprocess_english(args.text, preprocess_config))
-            texts = torch.tensor(preprocess_vie(args.text, './lexicon/viet-tts-lexicon.txt', 'vietnamese_cleaners'))
+            texts = torch.tensor(preprocess_vie(
+                args.text, './lexicon/viet-tts-lexicon.txt', 'vietnamese_cleaners'))
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
-            texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
-        
+            texts = torch.tensor(preprocess_mandarin(
+                args.text, preprocess_config))
+
         # preprocess_vie.save('./script_preprocess_vie.pt')
         text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
         # synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)
 
         from e2e import E2E
-        e2e_model = E2E('./script_model.pt', './script_vocoder.pt', model_config, preprocess_config)
+        e2e_model = E2E('./script_model.pt', './script_vocoder.pt',
+                        model_config, preprocess_config)
         # e2e_model = torch.jit.script(e2e_model)
         # e2e_model.save('./script_e2e.pt')
         # e2e_model = torch.jit.load('./script_e2e.pt')

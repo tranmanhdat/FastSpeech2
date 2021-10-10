@@ -92,7 +92,8 @@ def log(
 
 
 def get_mask_from_lengths(lengths, max_len:int = 0):
-    device = 'cuda'
+    device_id = lengths.get_device()
+    device = torch.device(f"cuda:{device_id}") if device_id>-1 else torch.device("cpu")
     batch_size = lengths.shape[0]
     if not max_len:
         max_len = torch.max(lengths).item()

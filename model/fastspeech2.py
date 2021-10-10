@@ -8,8 +8,10 @@ import torch.nn.functional as F
 from transformer import Encoder, Decoder, PostNet
 from .modules import VarianceAdaptor
 from utils.tools import get_mask_from_lengths
+from typing import List
 
-## TODO: Hint consider var: torch.Tensor = torch.tensor([]) -> var: torch.Tensor ## as type init only
+# TODO: Hint consider var: torch.Tensor = torch.tensor([]) -> var: torch.Tensor ## as type init only
+
 
 class FastSpeech2(nn.Module):
     """ FastSpeech2 """
@@ -19,7 +21,8 @@ class FastSpeech2(nn.Module):
         self.model_config = model_config
 
         self.encoder = Encoder(model_config)
-        self.variance_adaptor = VarianceAdaptor(preprocess_config, model_config)
+        self.variance_adaptor = VarianceAdaptor(
+            preprocess_config, model_config)
         self.decoder = Decoder(model_config)
         self.mel_linear = nn.Linear(
             model_config["transformer"]["decoder_hidden"],
@@ -27,6 +30,7 @@ class FastSpeech2(nn.Module):
         )
         self.postnet = PostNet()
 
+# TODO: ignore speaker_emb for immediate reference
         # self.speaker_emb = torch.Tensor()
         # if model_config["multi_speaker"]:
         #     with open(
@@ -36,26 +40,26 @@ class FastSpeech2(nn.Module):
         #         "r",
         #     ) as f:
         #         n_speaker = len(json.load(f))
-            # self.speaker_emb = nn.Embedding(
-            #     n_speaker,
-            #     model_config["transformer"]["encoder_hidden"],
-            # )
+        # self.speaker_emb = nn.Embedding(
+        #     n_speaker,
+        #     model_config["transformer"]["encoder_hidden"],
+        # )
 
     def forward(
         self,
         speakers,
         texts,
         src_lens,
-        max_src_len: int=0,
-        mels = torch.tensor([]),
-        mel_lens = torch.tensor([]),
-        max_mel_len:int=-1,
-        p_targets = torch.tensor([]),
-        e_targets = torch.tensor([]),
-        d_targets = torch.tensor([]),
-        p_control:float=1.0,
-        e_control:float=1.0,
-        d_control:float=1.0,
+        max_src_len: int = 0,
+        mels=torch.tensor([]),
+        mel_lens=torch.tensor([]),
+        max_mel_len: int = -1,
+        p_targets=torch.tensor([]),
+        e_targets=torch.tensor([]),
+        d_targets=torch.tensor([]),
+        p_control: float = 1.0,
+        e_control: float = 1.0,
+        d_control: float = 1.0,
     ):
         # max_src_len = max_src_len.squeeze()
         # max_mel_len = max_mel_len.squeeze()
@@ -72,14 +76,14 @@ class FastSpeech2(nn.Module):
         # try:
         output = self.encoder(texts, src_masks)
         # except Exception as e:
-            # print(f"Error when encoding {texts}, {src_masks}")
-            # raise e
+        # print(f"Error when encoding {texts}, {src_masks}")
+        # raise e
 
-        # try: 
-        if self.speaker_emb is not None:
-            output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
-                -1, max_src_len, -1
-            )
+        # try:
+        # if self.speaker_emb is not None:
+        #     output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
+        #         -1, max_src_len, -1
+        #     )
 
         (
             output,
@@ -121,3 +125,4 @@ class FastSpeech2(nn.Module):
             mel_masks,
             src_lens,
             mel_lens,
+        )
