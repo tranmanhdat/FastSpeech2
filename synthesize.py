@@ -56,6 +56,34 @@ def preprocess_english(text, preprocess_config):
 
     return sequence.unsqueeze(0)
 
+# @torch.jit.script
+def preprocess_vie(text:str, lexicon_path:str, cleaner:str):
+    punctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+    text = text.rstrip(punctuation)
+    lexicon = read_lexicon(lexicon_path)
+
+    phones: str = []
+    errs: str = []
+    words = re.split(r"([,;.\-\?\!\s+])", text)
+    for w in words:
+        if w.lower() in lexicon:
+            phones += lexicon[w.lower()]
+        else:
+            # phones += list(filter(lambda p: p != " ", g2p(w)))
+            errs.append(w.lower())
+    print(f"Error words: {' '.join(errs)}")
+    phones = "{" + "}{".join(phones) + "}"
+    phones = re.sub(r"\{[^\w\s]?\}", "{sp}", phones)
+    phones = phones.replace("}{", " ")
+
+    print("Raw Text Sequence: {}".format(text))
+    print("Phoneme Sequence: {}".format(phones))
+    sequence = torch.tensor(
+        text_to_sequence(
+            phones, [cleaner] 
+        )
+    )
+    return sequence.unsqueeze(0)
 
 def preprocess_mandarin(text, preprocess_config):
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
@@ -227,9 +255,11 @@ if __name__ == "__main__":
     # wrapped_model.save('script_model.pt')
     # exit()
 
-    model = torch.jit.load("script_model.pt")
+    # model = torch.jit.load("script_model.pt")
     # Load vocoder
-    vocoder = get_vocoder(model_config, device)
+    # vocoder = get_vocoder(model_config, device)
+
+    # vocoder = torch.jit.load('script_vocoder.pt')
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
     # Preprocess texts
@@ -258,9 +288,20 @@ if __name__ == "__main__":
         ids = raw_texts = [args.text[:100]]
         speakers = torch.tensor([args.speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
-            texts = torch.tensor(preprocess_english(args.text, preprocess_config))
+            # texts = torch.tensor(preprocess_english(args.text, preprocess_config))
+            texts = torch.tensor(preprocess_vie(args.text, './lexicon/viet-tts-lexicon.txt', 'vietnamese_cleaners'))
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
             texts = torch.tensor(preprocess_mandarin(args.text, preprocess_config))
+        
+        # preprocess_vie.save('./script_preprocess_vie.pt')
         text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
-        synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)
+        # synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)
+
+        from e2e import E2E
+        e2e_model = E2E('./script_model.pt', './script_vocoder.pt', model_config, preprocess_config)
+        # e2e_model = torch.jit.script(e2e_model)
+        # e2e_model.save('./script_e2e.pt')
+        # e2e_model = torch.jit.load('./script_e2e.pt')
+        wav_files = e2e_model(batchs[0])
+        print(wav_files)
