@@ -59,9 +59,9 @@ def to_device(data, device):
     if len(data) == 6:
         (ids, raw_texts, speakers, texts, src_lens, max_src_len) = data
 
-        speakers = torch.from_numpy(speakers).long().to(device)
-        texts = torch.from_numpy(texts).long().to(device)
-        src_lens = torch.from_numpy(src_lens).to(device)
+        speakers = speakers.long().to(device)
+        texts = texts.long().to(device)
+        src_lens = src_lens.to(device)
 
         return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
 
@@ -103,7 +103,7 @@ def expand(values, durations):
     out = list()
     for value, d in zip(values, durations):
         out += [value] * max(0, int(d))
-    return np.array(out)
+    return torch.tensor(out)
 
 def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, path):
     import uuid 
@@ -295,7 +295,7 @@ def pad_1D(inputs, PAD=0):
     max_len = max((len(x) for x in inputs))
     padded = np.stack([pad_data(x, max_len, PAD) for x in inputs])
 
-    return padded
+    return torch.from_numpy(padded)
 
 
 def pad_2D(inputs, maxlen=None):
@@ -316,7 +316,7 @@ def pad_2D(inputs, maxlen=None):
         max_len = max(np.shape(x)[0] for x in inputs)
         output = np.stack([pad(x, max_len) for x in inputs])
 
-    return output
+    return torch.from_numpy(output)
 
 
 def pad(input_ele, mel_max_length=None):

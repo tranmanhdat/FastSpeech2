@@ -143,7 +143,7 @@ class Dataset(Dataset):
         for idx in idx_arr:
             output.append(self.reprocess(data, idx))
 
-        return output
+        return torch.tensor(output)
 
 
 class TextDataset(Dataset):

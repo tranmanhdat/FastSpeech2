@@ -89,4 +89,4 @@ def vocoder_infer(mels, vocoder, model_config, preprocess_config, lengths=None):
         if lengths is not None:
             wavs[i] = wavs[i][: lengths[i]]
 
-    return wavs
+    return torch.tensor(wavs)
