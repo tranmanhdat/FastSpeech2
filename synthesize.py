@@ -321,5 +321,5 @@ if __name__ == "__main__":
         # e2e_model = torch.jit.script(e2e_model)
         # e2e_model.save('./script_e2e.pt')
         # e2e_model = torch.jit.load('./script_e2e.pt')
-        wav_files = e2e_model(batchs[0])
+        wav_files = e2e_model(to_device(batchs[0], device))
         print(wav_files)
