@@ -1,5 +1,6 @@
 import logging
 # import numpy as np
+from typing import List
 import os
 import torch
 import uuid
@@ -133,23 +134,28 @@ class E2ESynthesizer(BaseHandler):
         ids = text[:100]
         speakers = torch.tensor([0])
         raw_texts = text
-
-        texts = torch.tensor(preprocess_vie(text, './viet-tts-lexicon.txt' ))
+        phones, phone_groups = preprocess_vie(text, './viet-tts-lexicon.txt' )
+        texts = torch.tensor(phones)
         text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
 
         # return [self.to_device(batch, self.device) for batch in batchs]
-        return self.to_device(batchs[0], self.device)
+        return self.to_device(batchs[0], self.device), phone_groups
 
     def inference(self, data):
+        # 256: hop_length, 22050: sampling_rate
+        decode_durations = lambda x: x*256/22050
         with torch.no_grad():
             # TODO: correct this
             # _, mel, _, _ = self.fastspeech2_model.forwad(data)
             # audio = self.waveglow_model.infer(mel)
             # batch = self.preprocess(data)
-            batch = data
+            batch = data[0]
+            phones_groups = data[1]
             # print(f"Yasuo here {batch}")
             predictions = self.fastspeech2_model.forward(*(batch[2:]), p_control=1.0, e_control=1.0, d_control=1.0)
+            p_durations = predictions[5]
+            p_durations = [decode_durations[d] for d in p_durations]
 
             mel_predictions = predictions[1].transpose(1, 2)
 
@@ -188,12 +194,15 @@ def preprocess_vie(text:str, lexicon_path:str ):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(lexicon_path)
 
-    phones: str = []
-    errs: str = []
+    phones: List[str] = []
+    errs: List[str] = []
     words = re.split(r"([,;.\-\?\!\s+])", text)
+    phone_groups = []
     for w in words:
         if w.lower() in lexicon:
-            phones += lexicon[w.lower()]
+            p = lexicon[w.lower()]
+            phones += p
+            phone_groups.append((p))
         else:
             # phones += list(filter(lambda p: p != " ", g2p(w)))
             errs.append(w.lower())
@@ -209,7 +218,7 @@ def preprocess_vie(text:str, lexicon_path:str ):
             phones, 
         )
     )
-    return sequence.unsqueeze(0)
+    return sequence.unsqueeze(0), phone_groups
 
 def text_to_sequence(text,):
     sequence = []
@@ -250,3 +259,4 @@ def read_lexicon(lex_path):
             phones = temp[1:]
             if word.lower() not in lexicon:
                 lexicon[word.lower()] = phones
+    return lexicon

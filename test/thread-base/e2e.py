@@ -50,7 +50,7 @@ class E2E(nn.Module):
         for wav in wavs:
             wav_name = uuid.uuid4().hex[:25].upper()
             wav_file = os.path.join(path, "{}.wav".format(wav_name))
-            wavfile.write(wav_file, sampling_rate, wav.numpy())
+            wavfile.write(wav_file, sampling_rate)
             # yield wav_file
             wav_files.append(wav_file)
 
