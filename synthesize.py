@@ -13,14 +13,15 @@ from pypinyin import pinyin, Style
 from utils.model import get_model, get_vocoder
 from utils.tools import to_device, synth_samples, synth_wav
 from dataset import TextDataset
-from text import text_to_sequence
+from text import text_to_sequence, vi_number_1, vi_abbreviation
 import time
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 
 def read_lexicon(lex_path):
     lexicon = {}
-    with open(lex_path) as f:
+    with open(lex_path, encoding='utf-8') as f:
         for line in f:
             temp = re.split(r"\s+", line.strip("\n"))
             word = temp[0]
@@ -30,19 +31,44 @@ def read_lexicon(lex_path):
     return lexicon
 
 
-g2p = G2p()
-
-
+    g2p = G2p()
 def preprocess_english(text, preprocess_config):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
-
     phones = []
-    words = re.split(r"([,;.\-\?\!\s+])", text)
+    # clean text number
+    text = vi_number_1.normalize_number(text)
+    words = re.split(r"([,;.\"\-\?\!\(\)\s+])", text)
     for w in words:
         if w.lower() in lexicon:
             phones += lexicon[w.lower()]
         else:
+            # check number with sign
+            list_number_with_sign = vi_number_1.process_number_sign(w)
+            if len(list_number_with_sign) != 0:
+                for number_with_sign in list_number_with_sign:
+                    try:
+                        read_number_string = vi_number_1.process_number(int(number_with_sign))
+                    except ValueError:
+                        str_abbr = vi_abbreviation.check_abbr(number_with_sign)
+                        if str_abbr != '':
+                            read_number_string = str_abbr
+                        else:
+                            read_number_string = ''
+                    numbers_list = re.split(r"([,;.\-\?\!\s+])", read_number_string)
+                    for num in numbers_list:
+                        if num.lower() in lexicon:
+                            phones += lexicon[num.lower()]
+                continue
+            # check abbreviation
+            str_abbr = vi_abbreviation.check_abbr(w)
+            if str_abbr != '':
+                w_abbr = re.split(r"([,;.\-\?\!\s+])", str_abbr)
+                for abbr in w_abbr:
+                    if abbr.lower() in lexicon:
+                        phones += lexicon[abbr.lower()]
+                continue
+            # default
             phones += list(filter(lambda p: p != " ", g2p(w)))
     phones = "{" + "}{".join(phones) + "}"
     phones = re.sub(r"\{[^\w\s]?\}", "{sp}", phones)
@@ -50,7 +76,7 @@ def preprocess_english(text, preprocess_config):
 
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = torch.tensor(
+    sequence = np.array(
         text_to_sequence(
             phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
         )
@@ -155,19 +181,15 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
         batch = to_device(batch, device)
         with torch.no_grad():
             # Forward
+            # output = model(
+            #     *(batch[2:]),
+            #     p_control=pitch_control,
+            #     e_control=energy_control,
+            #     d_control=duration_control
+            # )
             output = torch.jit.trace(model,
                                      *(batch[2:]),
                                      )
-            # for wav_file in synth_wav(
-            #     batch,
-            #     output,
-            #     vocoder,
-            #     model_config,
-            #     preprocess_config,
-            #     train_config["path"]["result_path"],
-            #     ):
-            #     print(f"Reference done: {wav_file}")
-            # yield wav_file
             wav_files += synth_wav(
                 batch,
                 output,
@@ -175,7 +197,7 @@ def synthesize_wav(model, step, configs, vocoder, batchs, control_values):
                 model_config,
                 preprocess_config,
                 train_config["path"]["result_path"],
-            )
+                )
     print(f"Reference done after {time.time()-_start}")
     return wav_files
 
@@ -252,23 +274,21 @@ if __name__ == "__main__":
     preprocess_config = yaml.load(
         open(args.preprocess_config, "r"), Loader=yaml.FullLoader
     )
-    model_config = yaml.load(
-        open(args.model_config, "r"), Loader=yaml.FullLoader)
-    train_config = yaml.load(
-        open(args.train_config, "r"), Loader=yaml.FullLoader)
+    model_config = yaml.load(open(args.model_config, "r"), Loader=yaml.FullLoader)
+    train_config = yaml.load(open(args.train_config, "r"), Loader=yaml.FullLoader)
     configs = (preprocess_config, model_config, train_config)
 
     # Get model
     model = get_model(args, configs, device, train=False)
-    wrapped_model = torch.jit.script(model)
-    wrapped_model.save('script_model.pt')
+    # wrapped_model = torch.jit.script(model)
+    # wrapped_model.save('script_model.pt')
 
     # model = torch.jit.load("script_model.pt")
 
     # Load vocoder
     vocoder = get_vocoder(model_config, device)
-    vocoder = torch.jit.script(vocoder)
-    vocoder.save('script_vocoder.pt')
+    # vocoder = torch.jit.script(vocoder)
+    # vocoder.save('script_vocoder.pt')
     # vocoder = torch.jit.load('script_vocoder.pt')
     # exit()
 
@@ -284,8 +304,7 @@ if __name__ == "__main__":
             collate_fn=dataset.collate_fn,
         )
         print(f"Loaded {len(dataset)} file after {time.time()-_start}")
-        synthesize(model, args.restore_step, configs,
-                   vocoder, batchs, control_values)
+        synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
         speakers = torch.tensor([args.speaker_id])
@@ -314,7 +333,7 @@ if __name__ == "__main__":
         text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
         # synthesize_wav(model, args.restore_step, configs, vocoder, batchs, control_values)
-
+    
         from e2e import E2E
         e2e_model = E2E('./script_model.pt', './script_vocoder.pt',
                         model_config, preprocess_config)

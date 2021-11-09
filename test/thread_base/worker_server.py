@@ -1,4 +1,5 @@
 # from multiprocessing import Manager
+from posixpath import basename
 from e2e import E2E
 import numpy as np
 import re
@@ -11,15 +12,29 @@ import threading
 import os
 from types import SimpleNamespace
 import zmq.green as zmq
-from misc import mpickle
+from .misc import mpickle
 # from misc import shared_memory as sm
 import torch.multiprocessing as mp
 import uuid
 import sys
-# from text.symbols import symbols
-symbols = [l.strip() for l in open('./phones.txt')]
-
 import yaml
+# from text.symbols import symbols
+if __name__ == '__main__':
+    symbols = [l.strip() for l in open('./phones.txt')]
+    preprocess_config = yaml.load(
+        open('../../config/Viet_tts/preprocess.yaml', "r"), Loader=yaml.FullLoader
+    )
+    model_config = yaml.load(open('../../config/Viet_tts/model.yaml', "r"), Loader=yaml.FullLoader)
+    lex_path = '../../lexicon/viet-tts-lexicon.txt' 
+else:
+    cwd = os.path.dirname(__file__)
+    symbols = [l.strip() for l in open(os.path.join(os.path.dirname(__file__), './phones.txt'))]
+    preprocess_config = yaml.load(
+        open(os.path.join(cwd, '../../config/Viet_tts/preprocess.yaml'), "r"), Loader=yaml.FullLoader
+    )
+    model_config = yaml.load(open(os.path.join(cwd, '../../config/Viet_tts/model.yaml'), "r"), Loader=yaml.FullLoader)
+    lex_path = os.path.join(cwd, '../../lexicon/viet-tts-lexicon.txt' )
+
 
 QUEUE_SIZE = mp.Value('i', 0)
 TOPIC = 'snaptravel'
@@ -41,10 +56,6 @@ _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 _curly_re = re.compile(r"(.*?)\{(.+?)\}(.*)")
 _whitespace_re = re.compile(r'\s+')
 
-preprocess_config = yaml.load(
-    open('../../config/Viet_tts/preprocess.yaml', "r"), Loader=yaml.FullLoader
-)
-model_config = yaml.load(open('../../config/Viet_tts/model.yaml', "r"), Loader=yaml.FullLoader)
 
 class WrapperModel(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -56,7 +67,7 @@ class WrapperModel(nn.Module):
         speakers = torch.tensor([0])
         raw_texts = text
         ## TODO: load lexicon once
-        texts = torch.tensor(preprocess_vie(text, '../../lexicon/viet-tts-lexicon.txt' ))
+        texts = torch.tensor(preprocess_vie(text, lex_path))
         text_lens = torch.tensor([len(texts[0])])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
 

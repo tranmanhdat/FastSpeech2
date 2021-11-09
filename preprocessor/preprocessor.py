@@ -89,7 +89,7 @@ class Preprocessor:
                     if len(energy) > 0:
                         energy_scaler.partial_fit(energy.reshape((-1, 1)))
 
-                # if 'n' in locals():
+                    # if 'n' in locals():
                     n_frames += n
 
         print("Computing statistic quantities ...")
