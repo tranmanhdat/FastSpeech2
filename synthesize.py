@@ -31,7 +31,7 @@ def read_lexicon(lex_path):
     return lexicon
 
 
-    g2p = G2p()
+g2p = G2p()
 def preprocess_english(text, preprocess_config):
     text = text.rstrip(punctuation)
     lexicon = read_lexicon(preprocess_config["path"]["lexicon_path"])
