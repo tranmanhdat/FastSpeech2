@@ -76,7 +76,7 @@ def preprocess_english(text, preprocess_config):
 
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = np.array(
+    sequence = torch.tensor(
         text_to_sequence(
             phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
         )
