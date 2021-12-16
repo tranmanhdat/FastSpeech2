@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import torch
 
 from .Modules import ScaledDotProductAttention
 
@@ -8,7 +9,7 @@ from .Modules import ScaledDotProductAttention
 class MultiHeadAttention(nn.Module):
     """ Multi-Head Attention module """
 
-    def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1):
+    def __init__(self, n_head, d_model, d_k, d_v, dropout:float=0.1):
         super().__init__()
 
         self.n_head = n_head
@@ -19,14 +20,15 @@ class MultiHeadAttention(nn.Module):
         self.w_ks = nn.Linear(d_model, n_head * d_k)
         self.w_vs = nn.Linear(d_model, n_head * d_v)
 
-        self.attention = ScaledDotProductAttention(temperature=np.power(d_k, 0.5))
+        # self.attention = ScaledDotProductAttention(temperature=np.power(d_k, 0.5))
+        self.attention = ScaledDotProductAttention(temperature=d_k**0.5)
         self.layer_norm = nn.LayerNorm(d_model)
 
         self.fc = nn.Linear(n_head * d_v, d_model)
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, q, k, v, mask=None):
+    def forward(self, q, k, v, mask = torch.tensor([])):
 
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
 
@@ -60,7 +62,7 @@ class MultiHeadAttention(nn.Module):
 class PositionwiseFeedForward(nn.Module):
     """ A two-feed-forward-layer module """
 
-    def __init__(self, d_in, d_hid, kernel_size, dropout=0.1):
+    def __init__(self, d_in, d_hid, kernel_size, dropout:float=0.1):
         super().__init__()
 
         # Use Conv1D

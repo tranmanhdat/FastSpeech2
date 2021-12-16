@@ -3,6 +3,7 @@ import json
 import copy
 import math
 from collections import OrderedDict
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -11,7 +12,7 @@ import torch.nn.functional as F
 
 from utils.tools import get_mask_from_lengths, pad
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class VarianceAdaptor(nn.Module):
@@ -48,7 +49,7 @@ class VarianceAdaptor(nn.Module):
         if pitch_quantization == "log":
             self.pitch_bins = nn.Parameter(
                 torch.exp(
-                    torch.linspace(np.log(pitch_min), np.log(pitch_max), n_bins - 1)
+                    torch.linspace(torch.log(pitch_min), torch.log(pitch_max), n_bins - 1)
                 ),
                 requires_grad=False,
             )
@@ -60,7 +61,7 @@ class VarianceAdaptor(nn.Module):
         if energy_quantization == "log":
             self.energy_bins = nn.Parameter(
                 torch.exp(
-                    torch.linspace(np.log(energy_min), np.log(energy_max), n_bins - 1)
+                    torch.linspace(torch.log(energy_min), torch.log(energy_max), n_bins - 1)
                 ),
                 requires_grad=False,
             )
@@ -77,9 +78,9 @@ class VarianceAdaptor(nn.Module):
             n_bins, model_config["transformer"]["encoder_hidden"]
         )
 
-    def get_pitch_embedding(self, x, target, mask, control):
+    def get_pitch_embedding(self, x, target, mask, control: float):
         prediction = self.pitch_predictor(x, mask)
-        if target is not None:
+        if target.numel():
             embedding = self.pitch_embedding(torch.bucketize(target, self.pitch_bins))
         else:
             prediction = prediction * control
@@ -88,9 +89,9 @@ class VarianceAdaptor(nn.Module):
             )
         return prediction, embedding
 
-    def get_energy_embedding(self, x, target, mask, control):
+    def get_energy_embedding(self, x, target, mask, control: float):
         prediction = self.energy_predictor(x, mask)
-        if target is not None:
+        if target.numel():
             embedding = self.energy_embedding(torch.bucketize(target, self.energy_bins))
         else:
             prediction = prediction * control
@@ -103,14 +104,14 @@ class VarianceAdaptor(nn.Module):
         self,
         x,
         src_mask,
-        mel_mask=None,
-        max_len=None,
-        pitch_target=None,
-        energy_target=None,
-        duration_target=None,
-        p_control=1.0,
-        e_control=1.0,
-        d_control=1.0,
+        mel_mask=torch.tensor([]) ,
+        max_len: int=-1,
+        pitch_target = torch.Tensor([]),
+        energy_target = torch.Tensor([]),
+        duration_target = torch.Tensor([]),
+        p_control:float=1.0,
+        e_control:float=1.0,
+        d_control:float=1.0,
     ):
 
         log_duration_prediction = self.duration_predictor(x, src_mask)
@@ -119,13 +120,17 @@ class VarianceAdaptor(nn.Module):
                 x, pitch_target, src_mask, p_control
             )
             x = x + pitch_embedding
+        else:
+            pitch_prediction, pitch_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, src_mask, p_control
             )
             x = x + energy_embedding
+        else:
+            energy_prediction, energy_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
 
-        if duration_target is not None:
+        if duration_target.numel():
             x, mel_len = self.length_regulator(x, duration_target, max_len)
             duration_rounded = duration_target
         else:
@@ -141,11 +146,15 @@ class VarianceAdaptor(nn.Module):
                 x, pitch_target, mel_mask, p_control
             )
             x = x + pitch_embedding
+        else:
+            pitch_prediction, pitch_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
         if self.energy_feature_level == "frame_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
                 x, energy_target, mel_mask, p_control
             )
             x = x + energy_embedding
+        else:
+            energy_prediction, energy_embedding = torch.tensor(float("inf")), torch.tensor(float("inf"))
 
         return (
             x,
@@ -164,23 +173,23 @@ class LengthRegulator(nn.Module):
     def __init__(self):
         super(LengthRegulator, self).__init__()
 
-    def LR(self, x, duration, max_len):
-        output = list()
-        mel_len = list()
+    def LR(self, x, duration, max_len: int=-1):
+        output: List[torch.Tensor] = []
+        mel_len: List[int] = []
         for batch, expand_target in zip(x, duration):
             expanded = self.expand(batch, expand_target)
             output.append(expanded)
             mel_len.append(expanded.shape[0])
 
-        if max_len is not None:
-            output = pad(output, max_len)
+        if max_len!=-1:
+            out_padded = pad(output, max_len)
         else:
-            output = pad(output)
+            out_padded = pad(output)
 
-        return output, torch.LongTensor(mel_len).to(device)
+        return out_padded, torch.tensor(mel_len, dtype=torch.long).to('cuda')
 
     def expand(self, batch, predicted):
-        out = list()
+        out: List[torch.Tensor] = []
 
         for i, vec in enumerate(batch):
             expand_size = predicted[i].item()
@@ -189,7 +198,7 @@ class LengthRegulator(nn.Module):
 
         return out
 
-    def forward(self, x, duration, max_len):
+    def forward(self, x, duration, max_len: int):
         output, mel_len = self.LR(x, duration, max_len)
         return output, mel_len
 
@@ -239,12 +248,12 @@ class VariancePredictor(nn.Module):
 
         self.linear_layer = nn.Linear(self.conv_output_size, 1)
 
-    def forward(self, encoder_output, mask):
+    def forward(self, encoder_output: torch.Tensor, mask: torch.Tensor = torch.tensor([])):
         out = self.conv_layer(encoder_output)
         out = self.linear_layer(out)
         out = out.squeeze(-1)
 
-        if mask is not None:
+        if mask.numel():
             out = out.masked_fill(mask, 0.0)
 
         return out
@@ -259,11 +268,11 @@ class Conv(nn.Module):
         self,
         in_channels,
         out_channels,
-        kernel_size=1,
-        stride=1,
-        padding=0,
-        dilation=1,
-        bias=True,
+        kernel_size:int=1,
+        stride:int=1,
+        padding:int=0,
+        dilation:int=1,
+        bias:bool=True,
         w_init="linear",
     ):
         """

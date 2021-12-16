@@ -1,24 +1,26 @@
+from typing import List, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
+# TODO: TorchScript global var
 LRELU_SLOPE = 0.1
 
 
-def init_weights(m, mean=0.0, std=0.01):
+def init_weights(m, mean:float=0.0, std:float=0.01):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
         m.weight.data.normal_(mean, std)
 
 
-def get_padding(kernel_size, dilation=1):
+def get_padding(kernel_size:int, dilation:int=1):
     return int((kernel_size * dilation - dilation) / 2)
 
 
 class ResBlock(torch.nn.Module):
-    def __init__(self, h, channels, kernel_size=3, dilation=(1, 3, 5)):
+    def __init__(self, h, channels:int, kernel_size:int=3, dilation:Tuple[int, int, int]=(1, 3, 5)):
         super(ResBlock, self).__init__()
         self.h = h
         self.convs1 = nn.ModuleList(
@@ -93,7 +95,7 @@ class ResBlock(torch.nn.Module):
         )
         self.convs2.apply(init_weights)
 
-    def forward(self, x):
+    def forward(self, x, LRELU_SLOPE: float=0.1):
         for c1, c2 in zip(self.convs1, self.convs2):
             xt = F.leaky_relu(x, LRELU_SLOPE)
             xt = c1(xt)
@@ -146,18 +148,37 @@ class Generator(torch.nn.Module):
         self.ups.apply(init_weights)
         self.conv_post.apply(init_weights)
 
-    def forward(self, x):
+    def forward(self, x, LRELU_SLOPE: float=0.1):
         x = self.conv_pre(x)
-        for i in range(self.num_upsamples):
+
+        # len(self.ups) = len(self.upsample_rates) = self.num_upsamples
+        # for i in range(self.num_upsamples):
+        #     x = F.leaky_relu(x, LRELU_SLOPE)
+        #     x = self.ups[i](x)
+        #     xs = None
+        #     # len(self.resblocks) = self.num_kernels
+        #     for j in range(self.num_kernels):
+        #         if xs is None:
+        #             xs = self.resblocks[i * self.num_kernels + j](x)
+        #         else:
+        #             xs += self.resblocks[i * self.num_kernels + j](x)
+        #     x = xs / self.num_kernels
+
+        for i, upi in enumerate(self.ups):
             x = F.leaky_relu(x, LRELU_SLOPE)
-            x = self.ups[i](x)
-            xs = None
-            for j in range(self.num_kernels):
-                if xs is None:
-                    xs = self.resblocks[i * self.num_kernels + j](x)
-                else:
-                    xs += self.resblocks[i * self.num_kernels + j](x)
+            x = upi(x)
+            _ : List[float] = []
+            xs = torch.tensor(_)
+            for k, reblk in enumerate(self.resblocks):
+                for j in range(self.num_kernels):
+                    if k == i * self.num_kernels + j:
+                        if xs.numel():
+                            xs += reblk(x)
+                        else:
+                            xs = reblk(x)
             x = xs / self.num_kernels
+
+
         x = F.leaky_relu(x)
         x = self.conv_post(x)
         x = torch.tanh(x)

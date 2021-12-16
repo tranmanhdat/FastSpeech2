@@ -1,5 +1,6 @@
 import os
 import json
+from typing import List
 
 import torch
 import torch.nn.functional as F
@@ -40,6 +41,7 @@ def to_device(data, device):
         pitches = torch.from_numpy(pitches).float().to(device)
         energies = torch.from_numpy(energies).to(device)
         durations = torch.from_numpy(durations).long().to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (
             ids,
@@ -59,15 +61,16 @@ def to_device(data, device):
     if len(data) == 6:
         (ids, raw_texts, speakers, texts, src_lens, max_src_len) = data
 
-        speakers = torch.from_numpy(speakers).long().to(device)
-        texts = torch.from_numpy(texts).long().to(device)
-        src_lens = torch.from_numpy(src_lens).to(device)
+        speakers = speakers.long().to(device)
+        texts = texts.long().to(device)
+        src_lens = src_lens.to(device)
+        # max_src_len = torch.tensor([max_src_len]).int().to(device)
 
         return (ids, raw_texts, speakers, texts, src_lens, max_src_len)
 
 
 def log(
-    logger, step=None, losses=None, fig=None, audio=None, sampling_rate=22050, tag=""
+    logger, step:int=0, losses=None, fig=None, audio=None, sampling_rate=22050, tag=""
 ):
     if losses is not None:
         logger.add_scalar("Loss/total_loss", losses[0], step)
@@ -88,13 +91,15 @@ def log(
         )
 
 
-def get_mask_from_lengths(lengths, max_len=None):
+def get_mask_from_lengths(lengths, max_len:int = 0):
+    device_id = lengths.get_device()
+    device = torch.device(f"cuda:{device_id}") if device_id>-1 else torch.device("cpu")
     batch_size = lengths.shape[0]
-    if max_len is None:
+    if not max_len:
         max_len = torch.max(lengths).item()
 
     ids = torch.arange(0, max_len).unsqueeze(0).expand(batch_size, -1).to(device)
-    mask = ids >= lengths.unsqueeze(1).expand(-1, max_len)
+    mask = (ids >= lengths.unsqueeze(1).expand(-1, max_len))
 
     return mask
 
@@ -103,8 +108,31 @@ def expand(values, durations):
     out = list()
     for value, d in zip(values, durations):
         out += [value] * max(0, int(d))
-    return np.array(out)
+    return torch.tensor(out)
 
+def synth_wav(targets, predictions, vocoder, model_config, preprocess_config, path):
+    import uuid 
+    basenames = targets[0]
+
+    from .model import vocoder_infer
+
+    mel_predictions = predictions[1].transpose(1, 2)
+    lengths = predictions[9] * preprocess_config["preprocessing"]["stft"]["hop_length"]
+    wav_predictions = vocoder_infer(
+        mel_predictions, vocoder, model_config, preprocess_config, lengths=lengths
+    )
+
+    sampling_rate = preprocess_config["preprocessing"]["audio"]["sampling_rate"]
+    wav_files = []
+    for wav, basename in zip(wav_predictions, basenames):
+        wav_name = uuid.uuid4().hex[:25].upper()
+        wav_file = os.path.join(path, "{}.wav".format(wav_name))
+        wavfile.write( wav_file, sampling_rate, wav.numpy())
+        # yield wav_file
+        wav_files.append(wav_file)
+
+    return wav_files
+    
 
 def synth_one_sample(targets, predictions, vocoder, model_config, preprocess_config):
 
@@ -264,45 +292,49 @@ def plot_mel(data, stats, titles):
 
 def pad_1D(inputs, PAD=0):
     def pad_data(x, length, PAD):
-        x_padded = np.pad(
-            x, (0, length - x.shape[0]), mode="constant", constant_values=PAD
+        # x_padded = np.pad(
+        x_padded = F.pad(
+            x, (0, length - x.shape[0]), mode="constant", value=PAD
         )
         return x_padded
 
     max_len = max((len(x) for x in inputs))
-    padded = np.stack([pad_data(x, max_len, PAD) for x in inputs])
+    padded = torch.stack([pad_data(x, max_len, PAD) for x in inputs])
 
+    # return torch.from_numpy(padded)
     return padded
 
 
-def pad_2D(inputs, maxlen=None):
+def pad_2D(inputs, maxlen:int=-1):
     def pad(x, max_len):
         PAD = 0
-        if np.shape(x)[0] > max_len:
+        # if np.shape(x)[0] > max_len:
+        if x.shape[0] > max_len:
             raise ValueError("not max_len")
 
-        s = np.shape(x)[1]
-        x_padded = np.pad(
-            x, (0, max_len - np.shape(x)[0]), mode="constant", constant_values=PAD
+        s = x.shape[1]
+        x_padded = F.pad(
+            x, (0, max_len - x.shape[0]), mode="constant", value=PAD
         )
         return x_padded[:, :s]
 
-    if maxlen:
-        output = np.stack([pad(x, maxlen) for x in inputs])
+    if maxlen!=-1:
+        output = torch.stack([pad(x, maxlen) for x in inputs])
     else:
-        max_len = max(np.shape(x)[0] for x in inputs)
-        output = np.stack([pad(x, max_len) for x in inputs])
+        max_len = max(x.shape[0] for x in inputs)
+        output = torch.stack([pad(x, max_len) for x in inputs])
 
     return output
+    # return torch.from_numpy(output)
 
 
-def pad(input_ele, mel_max_length=None):
-    if mel_max_length:
+def pad(input_ele: List[torch.Tensor], mel_max_length:int=-1):
+    if mel_max_length!=-1:
         max_len = mel_max_length
     else:
         max_len = max([input_ele[i].size(0) for i in range(len(input_ele))])
 
-    out_list = list()
+    out_list: List[torch.Tensor] = []
     for i, batch in enumerate(input_ele):
         if len(batch.shape) == 1:
             one_batch_padded = F.pad(
@@ -312,6 +344,9 @@ def pad(input_ele, mel_max_length=None):
             one_batch_padded = F.pad(
                 batch, (0, 0, 0, max_len - batch.size(0)), "constant", 0.0
             )
+        else:
+            # TODO: check this later
+            one_batch_padded = batch.data.clone()
         out_list.append(one_batch_padded)
     out_padded = torch.stack(out_list)
     return out_padded
