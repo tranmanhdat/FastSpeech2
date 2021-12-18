@@ -4,7 +4,7 @@ path:
   corpus_path: "../data/"
   lexicon_path: "./lexicon/viet-tts-lexicon.txt"
   raw_path: "./raw_data"
-  preprocessed_path: "./preprocessed_data/vlsp2017-sp"
+  preprocessed_path: "./preprocessed_data/chieuthuong"
 
 preprocessing:
 # default 512
