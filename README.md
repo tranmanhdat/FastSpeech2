@@ -67,7 +67,10 @@ python3 synthesize.py --text "YOUR_DESIRED_TEXT" --restore_step 900000 --mode si
 ```
 
 # Training
-
+## Custom train on vietnamese dataset
+```
+python prepare_align.py config/Viet_tts/preprocess.yaml
+```
 ## Datasets
 
 The supported datasets are

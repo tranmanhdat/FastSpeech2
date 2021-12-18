@@ -1,5 +1,4 @@
 import argparse
-
 import yaml
 import sys
 sys.path.insert(1, '/content/FastSpeech2')
