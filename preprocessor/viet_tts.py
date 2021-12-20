@@ -22,6 +22,8 @@ def prepare_align(config):
         for line in tqdm(data):
             elements = line.strip().split("\t")
             base_name = elements[0]
+            if len(elements) <4:
+                continue
             text = elements[3]
             text = _clean_text(text, cleaners)
             # texts[i] = {base_name: text}
