@@ -1,7 +1,7 @@
 path:
-  ckpt_path: "./output/ckpt/vlsp2017-sp"
-  log_path: "./output/log/vlsp2017-sp"
-  result_path: "./output/result/vlsp2017-sp"
+  ckpt_path: "./output/ckpt/chieuthuong"
+  log_path: "./output/log/chieuthuong"
+  result_path: "./output/result/chieuthuong"
 optimizer:
   batch_size: 32
   betas: [0.9, 0.98]
