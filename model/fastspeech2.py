@@ -32,18 +32,18 @@ class FastSpeech2(nn.Module):
 
 # TODO: ignore speaker_emb for immediate reference
         # self.speaker_emb = torch.Tensor()
-        # if model_config["multi_speaker"]:
-        #     with open(
-        #         os.path.join(
-        #             preprocess_config["path"]["preprocessed_path"], "speakers.json"
-        #         ),
-        #         "r",
-        #     ) as f:
-        #         n_speaker = len(json.load(f))
-        # self.speaker_emb = nn.Embedding(
-        #     n_speaker,
-        #     model_config["transformer"]["encoder_hidden"],
-        # )
+        if model_config["multi_speaker"]:
+            with open(
+                os.path.join(
+                    preprocess_config["path"]["preprocessed_path"], "speakers.json"
+                ),
+                "r",
+            ) as f:
+                n_speaker = len(json.load(f))
+            self.speaker_emb = nn.Embedding(
+                n_speaker,
+                model_config["transformer"]["encoder_hidden"],
+            )
 
     def forward(
         self,
@@ -51,15 +51,15 @@ class FastSpeech2(nn.Module):
         texts,
         src_lens,
         max_src_len: int = 0,
-        mels=torch.tensor([]),
-        mel_lens=torch.tensor([]),
-        max_mel_len: int = -1,
-        p_targets=torch.tensor([]),
-        e_targets=torch.tensor([]),
-        d_targets=torch.tensor([]),
-        p_control: float = 1.0,
-        e_control: float = 1.0,
-        d_control: float = 1.0,
+        mels=None,
+        mel_lens=None,
+        max_mel_len=None,
+        p_targets=None,
+        e_targets=None,
+        d_targets=None,
+        p_control=1.0,
+        e_control=1.0,
+        d_control=1.0,
     ):
         # max_src_len = max_src_len.squeeze()
         # max_mel_len = max_mel_len.squeeze()
@@ -70,8 +70,8 @@ class FastSpeech2(nn.Module):
         src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
-            if mel_lens.numel()
-            else torch.tensor(emp_float)
+            if mel_lens is not None
+            else None
         )
         # try:
         output = self.encoder(texts, src_masks)
@@ -80,10 +80,10 @@ class FastSpeech2(nn.Module):
         # raise e
 
         # try:
-        # if self.speaker_emb is not None:
-        #     output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
-        #         -1, max_src_len, -1
-        #     )
+        if self.speaker_emb is not None:
+            output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
+                -1, max_src_len, -1
+            )
 
         (
             output,

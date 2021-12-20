@@ -34,7 +34,7 @@ class Dataset(Dataset):
         speaker = self.speaker[idx]
         speaker_id = self.speaker_map[speaker]
         raw_text = self.raw_text[idx]
-        phone = torch.tensor(text_to_sequence(self.text[idx], self.cleaners))
+        phone = np.array(text_to_sequence(self.text[idx], self.cleaners))
         mel_path = os.path.join(
             self.preprocessed_path,
             "mel",
@@ -99,10 +99,10 @@ class Dataset(Dataset):
         energies = [data[idx]["energy"] for idx in idxs]
         durations = [data[idx]["duration"] for idx in idxs]
 
-        text_lens = torch.tensor([text.shape[0] for text in texts])
-        mel_lens = torch.tensor([mel.shape[0] for mel in mels])
+        text_lens = np.array([text.shape[0] for text in texts])
+        mel_lens = np.array([mel.shape[0] for mel in mels])
 
-        speakers = torch.tensor(speakers)
+        speakers = np.array(speakers)
         texts = pad_1D(texts)
         mels = pad_2D(mels)
         pitches = pad_1D(pitches)
@@ -128,7 +128,7 @@ class Dataset(Dataset):
         data_size = len(data)
 
         if self.sort:
-            len_arr = torch.tensor([d["text"].shape[0] for d in data])
+            len_arr = np.array([d["text"].shape[0] for d in data])
             idx_arr = np.argsort(-len_arr)
         else:
             idx_arr = np.arange(data_size)
@@ -143,7 +143,7 @@ class Dataset(Dataset):
         for idx in idx_arr:
             output.append(self.reprocess(data, idx))
 
-        return torch.tensor(output)
+        return output
 
 
 class TextDataset(Dataset):
@@ -168,7 +168,7 @@ class TextDataset(Dataset):
         speaker = self.speaker[idx]
         speaker_id = self.speaker_map[speaker]
         raw_text = self.raw_text[idx]
-        phone = torch.tensor(text_to_sequence(self.text[idx], self.cleaners))
+        phone = np.array(text_to_sequence(self.text[idx], self.cleaners))
 
         return (basename, speaker_id, phone, raw_text)
 
@@ -188,10 +188,10 @@ class TextDataset(Dataset):
 
     def collate_fn(self, data):
         ids = [d[0] for d in data]
-        speakers = torch.tensor([d[1] for d in data])
+        speakers = np.array([d[1] for d in data])
         texts = [d[2] for d in data]
         raw_texts = [d[3] for d in data]
-        text_lens = torch.tensor([text.shape[0] for text in texts])
+        text_lens = np.array([text.shape[0] for text in texts])
 
         texts = pad_1D(texts)
 

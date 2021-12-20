@@ -76,13 +76,13 @@ def preprocess_english(text, preprocess_config):
 
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = torch.tensor(
+    sequence = np.array(
         text_to_sequence(
             phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
         )
     )
 
-    return sequence.unsqueeze(0)
+    return np.array(sequence)
 
 # @torch.jit.script
 
@@ -108,12 +108,12 @@ def preprocess_vie(text: str, lexicon_path: str, cleaner: str):
 
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = torch.tensor(
+    sequence = np.array(
         text_to_sequence(
             phones, [cleaner]
         )
     )
-    return sequence.unsqueeze(0)
+    return np.array(sequence)
 
 
 def preprocess_mandarin(text, preprocess_config):
@@ -135,13 +135,13 @@ def preprocess_mandarin(text, preprocess_config):
     phones = "{" + " ".join(phones) + "}"
     print("Raw Text Sequence: {}".format(text))
     print("Phoneme Sequence: {}".format(phones))
-    sequence = torch.tensor(
+    sequence = np.array(
         text_to_sequence(
             phones, preprocess_config["preprocessing"]["text"]["text_cleaners"]
         )
     )
 
-    return torch.tensor(sequence)
+    return np.array(sequence)
 
 
 def synthesize(model, step, configs, vocoder, batchs, control_values):
@@ -307,14 +307,14 @@ if __name__ == "__main__":
         synthesize(model, args.restore_step, configs, vocoder, batchs, control_values)
     if args.mode == "single":
         ids = raw_texts = [args.text[:100]]
-        speakers = torch.tensor([args.speaker_id])
+        speakers = np.array([args.speaker_id])
         if preprocess_config["preprocessing"]["text"]["language"] == "en":
-            texts = torch.tensor(preprocess_english(
-                args.text, preprocess_config))
+            texts = np.array([preprocess_english(
+                args.text, preprocess_config)])
         elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
-            texts = torch.tensor(preprocess_mandarin(
+            texts = np.array(preprocess_mandarin(
                 args.text, preprocess_config))
-        text_lens = torch.tensor([len(texts)])
+        text_lens = np.array([len(texts)])
         batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
         synthesize(model, args.restore_step, configs,
                    vocoder, batchs, control_values)

@@ -1,7 +1,6 @@
 import os
 import random
 import json
-
 import tgt
 import librosa
 import numpy as np
@@ -175,7 +174,7 @@ class Preprocessor:
         wav, _ = librosa.load(wav_path)
         wav = wav[
             int(self.sampling_rate * start) : int(self.sampling_rate * end)
-        ].astype(torch.float32)
+        ].astype(np.float32)
 
         # Read raw text
         with open(text_path, "r") as f:
@@ -183,14 +182,14 @@ class Preprocessor:
 
         # Compute fundamental frequency
         pitch, t = pw.dio(
-            wav.astype(torch.float64),
+            wav.astype(np.float64),
             self.sampling_rate,
             frame_period=self.hop_length / self.sampling_rate * 1000,
         )
-        pitch = pw.stonemask(wav.astype(torch.float64), pitch, t, self.sampling_rate)
+        pitch = pw.stonemask(wav.astype(np.float64), pitch, t, self.sampling_rate)
 
         pitch = pitch[: sum(duration)]
-        if torch.sum(pitch != 0) <= 1:
+        if np.sum(pitch != 0) <= 1:
             return None
 
         # Compute mel-scale spectrogram and energy
@@ -200,20 +199,20 @@ class Preprocessor:
 
         if self.pitch_phoneme_averaging:
             # perform linear interpolation
-            nonzero_ids = torch.where(pitch != 0)[0]
+            nonzero_ids = np.where(pitch != 0)[0]
             interp_fn = interp1d(
                 nonzero_ids,
                 pitch[nonzero_ids],
                 fill_value=(pitch[nonzero_ids[0]], pitch[nonzero_ids[-1]]),
                 bounds_error=False,
             )
-            pitch = interp_fn(torch.arange(0, len(pitch)))
+            pitch = interp_fn(np.arange(0, len(pitch)))
 
             # Phoneme-level average
             pos = 0
             for i, d in enumerate(duration):
                 if d > 0:
-                    pitch[i] = torch.mean(pitch[pos : pos + d].float())
+                    pitch[i] = np.mean(pitch[pos : pos + d].float())
                 else:
                     pitch[i] = 0
                 pos += d
@@ -224,7 +223,7 @@ class Preprocessor:
             pos = 0
             for i, d in enumerate(duration):
                 if d > 0:
-                    energy[i] = torch.mean(energy[pos : pos + d].float())
+                    energy[i] = np.mean(energy[pos : pos + d].float())
                 else:
                     energy[i] = 0
                 pos += d
@@ -282,8 +281,8 @@ class Preprocessor:
 
             durations.append(
                 int(
-                    torch.round(e * self.sampling_rate / self.hop_length)
-                    - torch.round(s * self.sampling_rate / self.hop_length)
+                    np.round(e * self.sampling_rate / self.hop_length)
+                    - np.round(s * self.sampling_rate / self.hop_length)
                 )
             )
 
@@ -294,7 +293,7 @@ class Preprocessor:
         return phones, durations, start_time, end_time
 
     def remove_outlier(self, values):
-        values = torch.array(values)
+        values = np.array(values)
         p25 = np.percentile(values, 25)
         p75 = np.percentile(values, 75)
         lower = p25 - 1.5 * (p75 - p25)
