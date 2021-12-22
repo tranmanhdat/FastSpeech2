@@ -83,6 +83,8 @@ We take LJSpeech as an example hereafter.
 First, run 
 ```
 python3 prepare_align.py config/LJSpeech/preprocess.yaml
+
+mfa train raw_data/chieuthuong lexicon/lexicon-viet-dict.txt preprocessed_data/chieuthuong/TextGrid/chieuthuong --clean -j 10 --disable_textgrid_cleanup True
 ```
 for some preparations.
 
