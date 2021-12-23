@@ -36,7 +36,9 @@ def text_to_sequence(text, cleaner_names, phone_code='ipa'):
         if not m:
             sequence += _symbols_to_sequence(_clean_text(text, cleaner_names))
             break
-        sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
+        # sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
+        sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names).split())
+        ### for fix error pitch length
         if phone_code == 'ipa':
             sequence += _ipa_to_sequence(m.group(2))
         else:
