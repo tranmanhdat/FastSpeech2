@@ -78,6 +78,7 @@ def main(args, configs):
         inner_bar = tqdm(total=len(loader), desc="Epoch {}".format(epoch), position=1)
         for batchs in loader:
             for batch in batchs:
+                print(batch)
                 batch = to_device(batch, device)
 
                 # Forward
